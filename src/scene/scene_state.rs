@@ -127,16 +127,6 @@ impl SceneState {
         println!("SIZE {}", self.hull_i.len());
     }
 
-    pub fn set_hull_mesh_orug(&mut self) {
-        let mut hull_mesh: Vec<RawMesh> = mesh_loader::read_hull_packed();
-        hull_mesh.iter().for_each(|mesh| {
-            self.tot_bbx += &mesh.bbx;
-            //println!("{} {}",index,mesh.id);
-            //self.hull_mesh.insert(mesh.id, (0, 0, mesh.clone()));
-        });
-        println!("SIZE {}", self.hull_mesh.len());
-        //self.send_hull_to_device();
-    }
 
     pub fn set_hull_mesh_remote(&mut self, decoded_v: Vec<u8>, decoded_i: Vec<u8>, decoded_b: Vec<u8>, decoded_t: Vec<u8>) {
         warn!("TRY LOAD HULL FROm REMOTE");
@@ -154,19 +144,6 @@ impl SceneState {
         println!("SIZE {}", self.hull_i.len());
     }
 
-
-/*    fn send_hull_to_device(&mut self) {
-        self.slicer.set_by_bbx(&self.tot_bbx);
-        let (v, i, md) = self.convert_hull_parts_to_buffers();
-        self.hull_metadata = md;
-        self.hull_v.extend_from_slice(v.as_slice());
-        self.hull_i.extend_from_slice(i.as_slice());
-        info!("V {} I {}",v.len(), i.len() );
-        self.resize_hull_buffers();
-        self.is_hull_metadata_dirty = true;
-        info!("BBX x{} y{} z{} X{} Y{} Z{}", self.tot_bbx.min().x, self.tot_bbx.min().y, self.tot_bbx.min().z
-        , self.tot_bbx.max().x, self.tot_bbx.max().y, self.tot_bbx.max().z)
-    }*/
     pub fn reset_dirty_hull_metadata(&mut self) {
         self.is_hull_metadata_dirty = false;
     }
@@ -201,35 +178,6 @@ impl SceneState {
             is_scene_modified
         }
     }
-    /*    fn mesh_analyzis(&mut self, vertex_index: i32, mesh: MeshVertex) -> Triangle {
-            let hm = self.hull_mesh.get(&mesh.id).unwrap();
-            //let raw_mesh = &hm.2;
-            let triangles = &raw_mesh.triangles;
-            let start_index = hm.0 as usize;
-            let end_index = hm.1 as usize;
-            let vertexes=&self.hull_v[start_index..end_index+1];
-
-
-            let mut points: Vec<Point3<f32>> = vec![];
-
-            raw_mesh.vertex_normal.chunks(6).for_each(|ch| {
-                points.push(Point3::new(ch[0], ch[1], ch[2]));
-            });
-            let local_index = (vertex_index - start_index) / 3;
-            let local_point = points[local_index as usize];
-            let local_trangle = triangles[local_index as usize].clone();
-
-            let global_point = Point3::new(
-                mesh.position[0],
-                mesh.position[1],
-                mesh.position[2]);
-            //warn!("start_index={} end_index={} vertex_index={}", start_index,end_index,vertex_index);
-            //warn!("local_index={} local_point={:?} vertex_index={:?}", local_index,local_point,global_point);
-            //warn!("TRIANGLE={:?} of {}", local_trangle,triangles.len() );
-
-            local_trangle
-        }
-    */
     pub fn get_hull_triangle_by_index(&self, index: usize) -> Option<(i32, Triangle)> {
         if (index < 2) {
             None
@@ -466,30 +414,7 @@ impl SceneState {
             usage: wgpu::BufferUsages::VERTEX,
         });
     }
-    /*fn convert_hull_parts_to_buffers(&mut self) -> (Vec<MeshVertex>, Vec<i32>, Vec<i32>) {
-        let mut indicies: Vec<i32> = vec![];
-        let mut meta_data: Vec<i32> = vec![];
-        let mut vertexes: Vec<MeshVertex> = vec![];
 
-        let mut ind_offset = 0;
-        let mut hashindex = 0;
-        self.hull_mesh.iter_mut().for_each(|hashed_mesh| {
-            let m = &hashed_mesh.1.2;
-            hashed_mesh.1.0 = hashindex;
-            m.vertex_normal.chunks(6).for_each(|vn| {
-                let v: MeshVertex = MeshVertex::new(vn[0], vn[1], vn[2], vn[3], vn[4], vn[5], m.color_indx, m.id);
-                vertexes.push(v);
-                hashindex = hashindex + 1;
-                meta_data.push(m.color_indx);
-            });
-            hashed_mesh.1.1 = hashindex - 1;
-            m.indx.iter().for_each(|indx| {
-                indicies.push(*indx + ind_offset);
-            });
-            ind_offset = ind_offset + m.indx.len() as i32;
-        });
-        (vertexes, indicies, meta_data)
-    }*/
     fn refresh_hull_remote_selected(&mut self) {
         #[cfg(target_arch = "wasm32")]
         hull_state::select_hull_parts_remote(web_sys::js_sys::Int32Array::from(Vec::from_iter(self.selected_hull_ids.clone()).as_slice()));
