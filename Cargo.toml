@@ -1,0 +1,79 @@
+#set RUST_LOG=error;  wasm-pack build  --target web --out-dir D:\WebstormProjects\portf1\src\assets\
+#npm install d:\rustproj2\putout\pkg\
+#npm uninstall d:\rustproj2\sm15nodes\pkg\
+[package]
+name = "putout"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name="main"
+path="src/libw.rs"
+crate_type=["cdylib", "rlib"]
+
+[[bin]]
+name="putout"
+path="src/main.rs"
+
+[dependencies]
+once_cell = "1.19.0"
+env_logger = "0.11.3"
+parking_lot = "0.12.1"
+itertools = "0.12.1"
+truck-base = "0.4.0"
+truck-geotrait = "0.3.0"
+truck-geometry = "0.4.0"
+truck-topology = "0.5.0"
+truck-polymesh = "0.5.0"
+truck-meshalgo = "0.3.0"
+truck-modeling = "0.5.1"
+truck-shapeops = "0.3.0"
+#bvh = { version = "0.8.0",features = ["serde"] }
+#triangle = "0.2.0"
+
+bitflags = "2.5.0"
+log = "0.4.21"
+pollster = "0.3.0"
+kurbo = "0.11.0"
+glyphon = "0.5.0"
+#HasRawWindowHandle
+#https://stackoverflow.com/questions/77373416/the-trait-raw-window-handlehasrawdisplayhandle-is-not-implemented-for-windo
+
+winit = { version = "0.29.15"}
+
+palette = { version = "0.7.5",default-features = true,features = ["named","named_from_str","bytemuck"] }
+#wgpu={git = "https://github.com/gfx-rs/wgpu.git",features = ["webgpu"]}
+wgpu = { version = "0.19.3", features = ["webgpu"]}
+
+rand = "0.8.5"
+bytemuck = { version = "1.15.0", features = ["derive"] }
+#array-bytes = "6.2.2"
+
+#glam = { version = "0.25.0", features = ["bytemuck"] }
+cgmath = "0.18.0"
+nalgebra = "0.32.5"
+miniz_oxide = "0.7.2"
+glob = "0.3.1"
+byteorder = "1.5.0"
+phf = { version = "0.11.2",features = ["macros"] }
+
+
+#web wasm-pack build --target web
+cfg-if = "1.0.0"
+zerocopy = { version ="0.7.32" , features = ["derive"]}
+tokio = { version = "1.37.0", features = ["sync", "rt", "macros"] }
+serde_json = "1.0.115"
+serde = { version = "1.0.197", features = ["derive"] }
+web-sys = { version = "0.3.69", features = ["Document", "Window", "Element", "HtmlCanvasElement", "CssStyleDeclaration","GpuCanvasContext","GpuCanvasConfiguration"] }
+flexbuffers = "2.0.0"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.7"
+console_log = "1.0.0"
+#wgpu = { version = "0.19.1", features = ["webgpu"]}
+wasm-bindgen = { version = "0.2.92"}
+wasm-bindgen-futures = "0.4.42"

@@ -1,0 +1,1 @@
+pub const SHIP_FRAME:f32=600.0;
