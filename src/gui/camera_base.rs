@@ -82,7 +82,7 @@ impl CameraBase {
         let head_up = Rc::new(RwLock::new(SHIP_UP.clone()));
         let head_right = Rc::new(RwLock::new(SHIP_RIGHT.clone()));
 
-        let mut camera = CameraBase {
+        let camera = CameraBase {
             eye: eye.clone(),
             head_forward: head_forward.clone(),
             head_up: head_up.clone(),
@@ -153,9 +153,9 @@ impl CameraBase {
         };
         self.view = Matrix4::look_to_rh(*self.eye.clone().read(), *self.head_forward.clone().read(), *self.head_up.clone().read());
         self.proj = perspective(self.fovy, self.aspect, self.near, self.far);
-        self.vp_matrix = (self.proj * self.view);
+        self.vp_matrix = self.proj * self.view;
         self.n_matrix = self.view.transpose();
-        if (diag.is_normal()) {
+        if diag.is_normal() {
             self.far = diag as f32;
         }
         self.mouse_screen_to_world();
@@ -183,7 +183,7 @@ impl CameraBase {
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {
-        if (w > 0 && h > 0) {
+        if w > 0 && h > 0 {
             self.near = 0.1;
             self.aspect = w as f32 / h as f32;
             self.screen_w = w as f32;
@@ -235,17 +235,17 @@ impl CameraBase {
         self.mouse_pos = PhysicalPosition::new(f64::neg_infinity(), f64::neg_infinity());
     }
 
-    pub fn on_mouse(&mut self, device_id: DeviceId, pos: PhysicalPosition<f64>) -> bool {
+    pub fn on_mouse(&mut self, _device_id: DeviceId, pos: PhysicalPosition<f64>) -> bool {
         let mut set_is_dirty = false;
-        if (self.mouse_pos.x == f64::neg_infinity()) {
+        if self.mouse_pos.x == f64::neg_infinity() {
             self.mouse_pos = pos.clone();
             set_is_dirty
         } else {
-            let dx = (self.mouse_pos.x - pos.x);
-            let dy = (self.mouse_pos.y - pos.y);
+            let dx = self.mouse_pos.x - pos.x;
+            let dy = self.mouse_pos.y - pos.y;
             match self.mode {
                 CameraMode::FLY => {
-                    if (abs(dx) < 100.0 && abs(dy) < 100.0) {
+                    if abs(dx) < 100.0 && abs(dy) < 100.0 {
                         self.camera_fly.update_mouse(dx as f32, dy as f32);
                     }
                 }
@@ -253,13 +253,13 @@ impl CameraBase {
                     match self.mouse_btn {
                         MouseButton::Left => {}
                         MouseButton::Right => {
-                            if (abs(dx) < 100.0 && abs(dy) < 100.0) {
+                            if abs(dx) < 100.0 && abs(dy) < 100.0 {
                                 self.camera_orbit.update_mouse(dx as f32, dy as f32);
                                 set_is_dirty = true;
                             }
                         }
                         MouseButton::Middle => {
-                            if (abs(dx) < 100.0 && abs(dy) < 100.0) {
+                            if abs(dx) < 100.0 && abs(dy) < 100.0 {
                                 self.camera_orbit.pan(dx as f32, dy as f32);
                                 set_is_dirty = true;
                             }
@@ -276,7 +276,7 @@ impl CameraBase {
             //info!("{:?} {} {}", self.mouse_pos, dx,dy);
         }
     }
-    pub fn on_mouse_btn_click(&mut self, device_id: DeviceId, state: ElementState, btn: MouseButton) {
+    pub fn on_mouse_btn_click(&mut self, _device_id: DeviceId, state: ElementState, btn: MouseButton) {
         match state {
             ElementState::Pressed => {
                 self.mouse_btn = btn;
@@ -298,7 +298,7 @@ impl CameraBase {
             ElementState::Released => { self.mouse_btn = MouseButton::Other(99) }
         }
     }
-    pub fn on_zoom(&mut self, device_id: DeviceId, delta: MouseScrollDelta, touch_phase: TouchPhase) -> bool {
+    pub fn on_zoom(&mut self, _device_id: DeviceId, delta: MouseScrollDelta, _touch_phase: TouchPhase) -> bool {
         let mut set_is_dirty = false;
         match self.mode {
             CameraMode::FLY => {}
@@ -306,7 +306,7 @@ impl CameraBase {
                 let dx = (self.mouse_pos.x as f32 - self.screen_w / 2.) / (self.screen_w / 2.);
                 let dy = -(self.mouse_pos.y as f32 - self.screen_h / 2.) / (self.screen_h / 2.);
                 match delta {
-                    MouseScrollDelta::LineDelta(horiz, vert) => {
+                    MouseScrollDelta::LineDelta(_horiz, vert) => {
                         self.camera_orbit.zoom(dx, dy, signum(vert).is_sign_negative());
                     }
                     MouseScrollDelta::PixelDelta(d) => {
@@ -345,7 +345,7 @@ impl CameraBase {
         PhysicalPosition::new(x, y)
     }
     #[cfg(not(target_arch = "wasm32"))]*/
-    pub fn get_mouse_pos(&self, scale_factor: f64) -> PhysicalPosition<f64> {
+    pub fn get_mouse_pos(&self, _scale_factor: f64) -> PhysicalPosition<f64> {
         self.mouse_pos.clone()
     }
 }

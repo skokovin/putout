@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use itertools::Itertools;
+
 use palette::encoding::Linear;
 use palette::rgb::Rgb;
 use palette::Srgb;
@@ -109,7 +109,7 @@ impl Material {
         ret.push(Material::default([0.0, 0.0, 0.0, 1.0]));
         OPENCOLORS.values().for_each(|&color_group|{
             color_group.iter().for_each(|c|{
-                let srgb =(Srgb::from(*c).into_linear() as Rgb<Linear<palette::encoding::Srgb>, f32>);
+                let srgb =Srgb::from(*c).into_linear() as Rgb<Linear<palette::encoding::Srgb>, f32>;
                 let mm=Material::default([srgb.red, srgb.green, srgb.blue, alfa]);
                 ret.push(mm);
             })

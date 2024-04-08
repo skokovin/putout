@@ -1,7 +1,7 @@
 use std::mem::size_of;
 use std::rc::Rc;
 use parking_lot::RwLock;
-use wgpu::{BindGroup, BindGroupLayout, BlendFactor, BlendOperation, Buffer, BufferAddress, BufferSize, Device, Face, FrontFace, PipelineLayout, RenderPipeline, TextureFormat};
+use wgpu::{BindGroup, BindGroupLayout, BlendFactor, BlendOperation, Buffer, BufferAddress, Device, Face, FrontFace, PipelineLayout, RenderPipeline, TextureFormat};
 use crate::shared::materials_lib::{Material, MATERIALS_COUNT};
 use crate::shared::mesh_common::MeshVertex;
 
@@ -230,10 +230,10 @@ impl HighlightPipeLine {
 
     pub fn fit_cab_buffer(&mut self, device: &Device, size: usize) {
 
-        let s=if(size==0){16}else {size*16};
+        let s=if size==0 {16}else {size*16};
         let currsize=self.high_light_cab_nodes_buffer.size();
 
-         if (currsize!=s as u64){
+         if currsize!=s as u64 {
             self.high_light_cab_nodes_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("high_light_cab_nodes Buffer"),
                 size: (s) as BufferAddress,

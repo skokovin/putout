@@ -37,11 +37,11 @@ impl Dimension {
                self.mode=DimensionMode::Point
            }
            DimensionMode::Line => {
-               if(self.mode==DimensionMode::Line){
+               if self.mode==DimensionMode::Line {
                    self.p0.x=f32::max_value();
                    println!("RESET LINE");
                }
-               if(self.p0.x==f32::max_value()){
+               if self.p0.x==f32::max_value() {
                    self.p0=p.clone();
                    self.mode=DimensionMode::NotSet;
                    #[cfg(target_arch = "wasm32")]

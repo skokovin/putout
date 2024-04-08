@@ -1,36 +1,34 @@
-use std::cell::{RefCell, RefMut};
 use std::collections::HashSet;
-use std::future::Future;
-use std::ops::Sub;
+
+
 use std::rc::Rc;
-use std::sync::{LockResult, TryLockResult};
+
 use tokio::sync::mpsc::{Receiver, Sender};
-use cgmath::{InnerSpace, Point3, Vector3, Vector4};
-use itertools::Itertools;
-use log::{info, Level, warn};
+use cgmath::{Point3};
+
+use log::{info, warn};
 use nalgebra::Point4;
 use parking_lot::RwLock;
 
-use wgpu::{Device, Queue};
-use wgpu::PolygonMode::Point;
-use wgpu::util::DeviceExt;
+use wgpu::{Device};
+
+
 use winit::dpi::PhysicalPosition;
 use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
-use winit::keyboard;
-use winit::keyboard::{Key, KeyCode, NamedKey, NativeKey, PhysicalKey, SmolStr};
+
+use winit::keyboard::{KeyCode, PhysicalKey};
 use crate::device::window_state::WindowState;
 use crate::gui::camera_base::{CameraMode, FlyActions};
-use crate::remote;
-use crate::remote::common_state::{COMMANDS, debug_move_to, DIMENSIONING, REMOTE_HULL_MESH, SLICER};
+
+use crate::remote::common_state::{COMMANDS, DIMENSIONING, REMOTE_HULL_MESH, SLICER};
 use crate::remote::{hull_state, RemoteCommand};
 use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
-use crate::scene::{mesh_loader, RawMesh};
+
 use crate::scene::scene_state::SceneState;
 use crate::shared::dimension::{Dimension, DimensionMode};
 use crate::shared::materials_lib::Material;
-use crate::shared::mesh_common::{MeshDrawIndexedIndirect, MeshVertex};
 
-use crate::shared::mesh_pipeline::{MeshPipeLine};
+
 use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
 use crate::shared::Triangle;
@@ -76,7 +74,8 @@ pub struct MessageController {
     check_counter: i32,
     pub snap_point: Point4<f32>,
     pub snap_mode: SnapMode,
-    pub active_id: i32,
+    pub active_id: u32,
+    active_pack_id: u32,
     pub active_point: Point3<f32>,
     pub active_triangle: Triangle,
     pub is_capture_screen_requested: bool,
@@ -84,6 +83,7 @@ pub struct MessageController {
     is_state_dirty_delay_counter: i32,
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
+    pub test_load:i32
 
 }
 
@@ -112,6 +112,7 @@ impl MessageController {
             snap_point: Point4::new(480.0, 28.0, -90.0, 1.0),
             snap_mode: SnapMode::Disabled,
             active_id: 0,
+            active_pack_id: 0,
             active_point: Point3::new(0.0, 0.0, 0.0),
             active_triangle: active_triangle,
             is_capture_screen_requested: false,
@@ -119,6 +120,7 @@ impl MessageController {
             is_state_dirty_delay_counter: DELAY,
             text_layout: text_layout,
             dimension: Dimension::new(),
+            test_load:0
         }
     }
     pub fn get_sender(&self) -> Sender<SMEvent> {
@@ -143,12 +145,12 @@ impl MessageController {
                     }
                 }
             }
-            Err(e) => {}
+            Err(_e) => {}
         }
         self.check_delay();
         self.text_layout.write().on_render(
             self.snap_mode.clone(),
-            self.active_id,
+            self.active_id as i32,
             self.active_point.clone(),
             self.get_mouse_pos(),
             self.dimension.clone(),
@@ -157,13 +159,13 @@ impl MessageController {
     }
     pub fn on_mouse_move(&mut self, device_id: DeviceId, pos: PhysicalPosition<f64>) {
         let is_dirty_from_mouse = self.scene_state.camera.on_mouse(device_id, pos);
-        if (is_dirty_from_mouse) {
+        if is_dirty_from_mouse {
             self.is_state_dirty = is_dirty_from_mouse;
         }
     }
     pub fn on_zoom(&mut self, device_id: DeviceId, delta: MouseScrollDelta, touch_phase: TouchPhase) {
         let is_dirty_from_mouse = self.scene_state.camera.on_zoom(device_id, delta, touch_phase);
-        if (is_dirty_from_mouse) {
+        if is_dirty_from_mouse {
             self.is_state_dirty = is_dirty_from_mouse;
         }
     }
@@ -172,7 +174,7 @@ impl MessageController {
         self.is_state_dirty = true;
         self.text_layout.write().resize(w, h, sf);
     }
-    fn on_keyboard(&mut self, d: DeviceId, key: KeyEvent, is_synth: bool) {
+    fn on_keyboard(&mut self, _d: DeviceId, key: KeyEvent, _is_synth: bool) {
         match key.physical_key {
             PhysicalKey::Code(KeyCode::F6) => {
                 match key.state {
@@ -231,8 +233,28 @@ impl MessageController {
                 match key.state {
                     ElementState::Pressed => {}
                     ElementState::Released => {
-                        info!("Start Load Hull by F2{:?}", key);
-                        self.scene_state.set_hull_mesh();
+                        warn!("Start Load Hull by F2{:?}", self.test_load);
+                        match self.test_load {
+                            0 => {
+                                self.scene_state.set_hull_mesh0();
+                                self.test_load=self.test_load+1;
+                            }
+                            1 => {
+                                self.scene_state.set_hull_mesh1();
+                                self.test_load=self.test_load+1;
+                            }
+                            2 => {
+                                self.scene_state.set_hull_mesh2();
+                                self.test_load=self.test_load+1;
+                            }
+                            3 => {
+                                self.scene_state.set_hull_mesh3();
+                                self.test_load=self.test_load+1;
+                            }
+                            _ => {}
+                        }
+
+
                         info!("FINISH Load Hull by F2{:?}", key);
                     }
                 }
@@ -248,33 +270,11 @@ impl MessageController {
                     }
                 }
             }
-            PhysicalKey::Code(KeyCode::F4) => {
-                match key.state {
-                    ElementState::Pressed => {}
-                    ElementState::Released => {
-                        let mut v: HashSet<i32> = HashSet::new();
-                        let selmeshes = self.scene_state.hull_mesh.iter().take(2500);
-                        selmeshes.for_each(|m| {
-                            v.insert(m.0.clone());
-                        });
-
-                        match hull_state::SELECTED_HULL.try_lock() {
-                            Ok(mut s) => {
-                                s.values = v;
-                                s.is_dirty = true;
-                            }
-                            Err(_) => { warn!("CANT_LOCK") }
-                        }
-                    }
-                }
-            }
 
             PhysicalKey::Code(KeyCode::F5) => {
                 match key.state {
                     ElementState::Pressed => {}
-                    ElementState::Released => {
-
-                    }
+                    ElementState::Released => {}
                 }
             }
 
@@ -380,7 +380,7 @@ impl MessageController {
             _ => (),
         }
     }
-    fn on_mouse_btn_click(&mut self, d: DeviceId, state: ElementState, button: MouseButton) {
+    fn on_mouse_btn_click(&mut self, _d: DeviceId, state: ElementState, button: MouseButton) {
         match state {
             ElementState::Pressed => {
                 match button {
@@ -397,13 +397,13 @@ impl MessageController {
                                     SnapMode::Edge => {}
                                     SnapMode::Face => {}
                                     SnapMode::Disabled => {
-                                        if (self.contrl) {
-                                            let is_scene_modified = self.scene_state.screen_oid(ActionType::Hide, self.active_id);
-                                            if (is_scene_modified) {
+                                        if self.contrl {
+                                            let is_scene_modified = self.scene_state.screen_oid(ActionType::Hide, self.active_id as i32, self.active_pack_id);
+                                            if is_scene_modified {
                                                 self.is_state_dirty = is_scene_modified;
                                             }
                                         } else {
-                                            let is_scene_modified = self.scene_state.screen_oid(ActionType::Select, self.active_id);
+                                            let _is_scene_modified = self.scene_state.screen_oid(ActionType::Select, self.active_id as i32, self.active_pack_id);
                                         }
                                     }
                                     SnapMode::LineDim => {}
@@ -418,7 +418,7 @@ impl MessageController {
                         match self.scene_state.camera.mode {
                             CameraMode::FLY => {}
                             CameraMode::ORBIT => {
-                                if (self.active_id != 0) {
+                                if self.active_id != 0 {
                                     self.scene_state.camera.move_camera_to_pos(self.active_point.clone());
                                 }
                             }
@@ -436,9 +436,9 @@ impl MessageController {
     fn check_remote_state(&mut self) {
         match SELECTED_HULL.try_lock() {
             Ok(mut s) => {
-                if (s.is_dirty) {
+                if s.is_dirty {
                     warn!("Start Select HULL");
-                    self.scene_state.select_hull_by_ids(s.values.clone());
+                    //self.scene_state.select_hull_by_ids(s.values.clone());
                     s.is_dirty = false;
                     s.values.clear();
                     warn!("FINISH Select HULL");
@@ -449,9 +449,9 @@ impl MessageController {
 
         match HIDDEN_HULL.try_lock() {
             Ok(mut s) => {
-                if (s.is_dirty) {
+                if s.is_dirty {
                     warn!("Start HIDE HULL");
-                    self.scene_state.hide_hull_by_ids(s.values.clone());
+                    //self.scene_state.hide_hull_by_ids(s.values.clone());
                     s.is_dirty = false;
                     s.values.clear();
                     warn!("FINISH HIDE HULL");
@@ -462,7 +462,7 @@ impl MessageController {
 
         match SLICER.try_lock() {
             Ok(mut s) => {
-                if (s.is_dirty) {
+                if s.is_dirty {
                     self.scene_state.slicer.set_slicer(
                         s.values[0],
                         s.values[1],
@@ -491,7 +491,7 @@ impl MessageController {
                                 //debugonly!!!
                                 let mut ids: HashSet<i32> = HashSet::new();
                                 ids.insert(oid.clone());
-                                self.scene_state.select_hull_by_ids(ids);
+                                self.scene_state.select_by_ids(ids);
 
                                 self.scene_state.zoom_to(oid);
                             }
@@ -505,7 +505,7 @@ impl MessageController {
         match DIMENSIONING.try_lock() {
             Ok(mode) => {
                 let m = mode.clone();
-                if (m != self.snap_mode) {
+                if m != self.snap_mode {
                     match m {
                         SnapMode::Vertex => { self.snap_mode = SnapMode::Vertex; }
                         SnapMode::Edge => { self.snap_mode = SnapMode::Edge; }
@@ -525,7 +525,7 @@ impl MessageController {
 
         match REMOTE_HULL_MESH.try_lock() {
             Ok(mut hm) => {
-                if(hm.is_dirty){
+                if hm.is_dirty {
                     self.scene_state.set_hull_mesh_remote(
                         hm.decoded_v.clone(),
                         hm.decoded_i.clone(),
@@ -541,26 +541,33 @@ impl MessageController {
     pub fn reset_material_dirty(&mut self) {
         self.is_materials_dirty = false;
     }
-
     pub fn get_mouse_pos(&self) -> PhysicalPosition<f64> {
         self.scene_state.camera.get_mouse_pos(self.window_state.read().get_scale_factor())
     }
     fn check_delay(&mut self) {
-        if (self.is_state_dirty) {
+        if self.is_state_dirty {
             self.is_state_dirty = false;
             self.is_state_dirty_delay_counter = DELAY;
             self.is_state_dirty_delay_counter = self.is_state_dirty_delay_counter - 1;
         }
 
-        if (self.is_state_dirty_delay_counter != DELAY) {
+        if self.is_state_dirty_delay_counter != DELAY {
             self.is_state_dirty_delay_counter = self.is_state_dirty_delay_counter - 1;
         }
 
-        if (!self.is_state_dirty && self.is_state_dirty_delay_counter < 0) {
+        if !self.is_state_dirty && self.is_state_dirty_delay_counter < 0 {
             self.is_state_dirty_delay_counter = DELAY;
             self.is_capture_screen_requested = true;
             println!("CAPTURE REQURSTED");
         }
+    }
+
+    pub fn set_pack_id(&mut self, active_pack_id: u32) {
+
+        self.active_pack_id = active_pack_id
+    }
+    pub fn get_pack_id(&self) -> u32 {
+        self.active_pack_id
     }
 }
 

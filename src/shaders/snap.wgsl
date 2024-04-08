@@ -71,9 +71,12 @@ struct SnapObject{
 @binding(5) @group(0) var<uniform> snap_object : SnapObject;
 
 struct VertexMetaData {
-     hull:array<i32>
+     ids:array<i32>
 };
-@binding(6) @group(0) var<storage, read> vertex_meta_data : VertexMetaData;
+@binding(6) @group(0) var<storage, read> vertex_meta_data0 : VertexMetaData;
+@binding(7) @group(0) var<storage, read> vertex_meta_data1 : VertexMetaData;
+@binding(8) @group(0) var<storage, read> vertex_meta_data2 : VertexMetaData;
+@binding(9) @group(0) var<storage, read> vertex_meta_data3 : VertexMetaData;
 
 
 struct Output {

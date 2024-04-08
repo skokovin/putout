@@ -87,57 +87,57 @@ impl CameraTouch {
     }
 
     fn do_transitions(&mut self) {
-        if (!self.fly_actions.is_empty()) {
-            if (self.fly_actions.contains(FlyActions::MOVE_FORWARD) && !self.fly_actions.contains(FlyActions::MOVE_BACKWARD)) {
+        if !self.fly_actions.is_empty() {
+            if self.fly_actions.contains(FlyActions::MOVE_FORWARD) && !self.fly_actions.contains(FlyActions::MOVE_BACKWARD) {
                 self.move_forward();
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_BACKWARD) && !self.fly_actions.contains(FlyActions::MOVE_FORWARD)) {
+            if self.fly_actions.contains(FlyActions::MOVE_BACKWARD) && !self.fly_actions.contains(FlyActions::MOVE_FORWARD) {
                 self.move_back();
             }
 
-            if (self.fly_actions.contains(FlyActions::STRAFE_LEFT) && !self.fly_actions.contains(FlyActions::STRAFE_RIGHT)) {
+            if self.fly_actions.contains(FlyActions::STRAFE_LEFT) && !self.fly_actions.contains(FlyActions::STRAFE_RIGHT) {
                 self.move_left();
             }
-            if (self.fly_actions.contains(FlyActions::STRAFE_RIGHT) && !self.fly_actions.contains(FlyActions::STRAFE_LEFT)) {
+            if self.fly_actions.contains(FlyActions::STRAFE_RIGHT) && !self.fly_actions.contains(FlyActions::STRAFE_LEFT) {
                 self.move_right();
             }
 
-            if (self.fly_actions.contains(FlyActions::FLY_DOWN) && !self.fly_actions.contains(FlyActions::FLY_UP)) {
+            if self.fly_actions.contains(FlyActions::FLY_DOWN) && !self.fly_actions.contains(FlyActions::FLY_UP) {
                 self.move_down();
             }
-            if (self.fly_actions.contains(FlyActions::FLY_UP) && !self.fly_actions.contains(FlyActions::FLY_DOWN)) {
+            if self.fly_actions.contains(FlyActions::FLY_UP) && !self.fly_actions.contains(FlyActions::FLY_DOWN) {
                 self.move_up();
             }
 
-            if (self.fly_actions.contains(FlyActions::MOVE_HEAD_L) && !self.fly_actions.contains(FlyActions::MOVE_HEAD_R)) {
+            if self.fly_actions.contains(FlyActions::MOVE_HEAD_L) && !self.fly_actions.contains(FlyActions::MOVE_HEAD_R) {
                 self.rotate_head_left();
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_HEAD_R) && !self.fly_actions.contains(FlyActions::MOVE_HEAD_L)) {
+            if self.fly_actions.contains(FlyActions::MOVE_HEAD_R) && !self.fly_actions.contains(FlyActions::MOVE_HEAD_L) {
                 self.rotate_head_right();
             }
 
-            if (self.fly_actions.contains(FlyActions::MOVE_FASTER_FB)) {
+            if self.fly_actions.contains(FlyActions::MOVE_FASTER_FB) {
                 self.velocity_fb = FAST_SPEED;
             } else {
                 self.velocity_fb = LOW_SPEED;
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_FASTER_LR)) {
+            if self.fly_actions.contains(FlyActions::MOVE_FASTER_LR) {
                 self.velocity_lr = FAST_SPEED;
             } else {
                 self.velocity_lr = LOW_SPEED;
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_FASTER_UD)) {
+            if self.fly_actions.contains(FlyActions::MOVE_FASTER_UD) {
                 self.velocity_ud = FAST_SPEED;
             } else {
                 self.velocity_ud = LOW_SPEED;
             }
 
-            if (self.fly_actions.contains(FlyActions::HEAD_FASTER_UD)) {
+            if self.fly_actions.contains(FlyActions::HEAD_FASTER_UD) {
                 self.velocity_head_ud = FAST_SPEED;
             } else {
                 self.velocity_head_ud = LOW_SPEED;
             }
-            if (self.fly_actions.contains(FlyActions::HEAD_FASTER_LR)) {
+            if self.fly_actions.contains(FlyActions::HEAD_FASTER_LR) {
                 self.velocity_head_lr = FAST_SPEED_HEAD;
             } else {
                 self.velocity_head_lr = LOW_SPEED_HEAD;
@@ -146,10 +146,10 @@ impl CameraTouch {
     }
 
     fn head_rotation(&mut self, dx: f32, dy: f32) {
-        self.yaw += (dx);
-        self.pitch += (dy);
-        if (self.pitch < -PI / 4.0) { self.pitch = -PI / 4.0 }
-        if (self.pitch > PI / 4.0) { self.pitch = PI / 4.0 }
+        self.yaw += dx;
+        self.pitch += dy;
+        if self.pitch < -PI / 4.0 { self.pitch = -PI / 4.0 }
+        if self.pitch > PI / 4.0 { self.pitch = PI / 4.0 }
         self.rotate();
     }
 
@@ -185,7 +185,7 @@ impl CameraTouch {
         self.head_rotation(self.velocity_head_lr, 0.0)
     }
 
-    pub fn move_to_posiions(&mut self, center: Point3<f32>, eye: Point3<f32>) {
+    pub fn move_to_posiions(&mut self, center: Point3<f32>, _eye: Point3<f32>) {
         /*        let offset = {
                     let d = center.distance(eye);
                     if (d < 500.0) { d * 2.0 } else { 15000.0 }

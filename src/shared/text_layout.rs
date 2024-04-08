@@ -1,4 +1,4 @@
-use std::ops::Sub;
+
 use std::rc::Rc;
 use std::sync::Arc;
 use cgmath::num_traits::Float;
@@ -160,19 +160,19 @@ impl TextLayout {
                      mouse_position: PhysicalPosition<f64>,
                      dimension: Dimension,
                      mvp: Matrix4<f32>) {
-        if (snap_mode != self.snap_mode) {
+        if snap_mode != self.snap_mode {
             self.snap_mode = snap_mode;
             self.gen_snap_mode_area();
             self.is_dirty = true;
         }
 
 
-        if (self.dimension_value > 0.0) {
+        if self.dimension_value > 0.0 {
             self.gen_dim_area();
             self.is_dirty = true;
         }
 
-        if (self.active_id != active_id || self.active_point != active_point) {
+        if self.active_id != active_id || self.active_point != active_point {
             self.active_id = active_id;
             self.active_point = active_point;
             self.gen_snap_value_area();
@@ -180,7 +180,7 @@ impl TextLayout {
         }
 
 
-        if (self.is_dirty) {
+        if self.is_dirty {
             self.refresh(mouse_position);
             self.is_dirty = false;
         }
@@ -195,11 +195,11 @@ impl TextLayout {
                 self.dimension_pos.x = ((p2_d.x / p2_d.w + 1.0) * self.width as f32) / 2.0;
                 self.dimension_pos.y = ((p2_d.y / p2_d.w - 1.0) * self.height as f32) / -2.0;
                 let dist = dimension.p0.distance(dimension.p1);
-                if (dist < 0.3
+                if dist < 0.3
                     || self.dimension_pos.x < 0.0
                     || self.dimension_pos.y < 0.0
                     || self.dimension_pos.x > self.width as f32
-                    || self.dimension_pos.y > self.height as f32) {
+                    || self.dimension_pos.y > self.height as f32 {
                     self.dimension_value = 0.0;
                 } else {
                     self.dimension_value = dist * 10.0;
@@ -248,7 +248,7 @@ impl TextLayout {
         text_areas.push(snap_symbol_area);
         text_areas.push(snap_value_area);
 
-        if (self.dimension_value > 0.0) {
+        if self.dimension_value > 0.0 {
             let dim_area = TextArea {
                 buffer: &self.dim_buff,
                 left: (self.dimension_pos.x / self.scale_factor as f32) as f32,
@@ -292,12 +292,12 @@ impl TextLayout {
     }
 
     fn gen_snap_value_area(&mut self) {
-        if (self.active_id != 0) {
+        if self.active_id != 0 {
             let id = self.active_id.to_string();
             let x = format!("{:6.3}", self.active_point.x / 100.0);
             let y = format!("{:6.3}", self.active_point.y / 100.0);
             let z = format!("{:6.3}", self.active_point.z / 100.0);
-            let str = if (self.active_point.x < f32::max_value()) {
+            let str = if self.active_point.x < f32::max_value() {
                 format!("ID {} \n X {}\n Y {} \n Z {}", id, x, y, z)
             } else {
                 "".to_string()

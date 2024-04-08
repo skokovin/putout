@@ -1,19 +1,18 @@
-use std::collections::HashSet;
+
 use std::sync::Mutex;
-use log::{info, Level, warn};
+use log::{Level, warn};
 use miniz_oxide::inflate::decompress_to_vec;
 use once_cell::sync::Lazy;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen_futures::js_sys::{Float32Array, Int32Array,Uint8Array};
+use wasm_bindgen_futures::js_sys::{Float32Array,Uint8Array};
 
 use crate::device::message_controller::SnapMode;
-use crate::remote::{ArrayF32State, CommandState, HashI32State, RemoteCommand, RemoteMeshData};
-use crate::remote::hull_state::SELECTED_HULL;
-use crate::scene::{mesh_loader, RawMesh};
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_futures::spawn_local;
+use crate::remote::{ArrayF32State, CommandState, RemoteCommand, RemoteMeshData};
+
+
+
 pub static REMOTE_HULL_MESH: Lazy<Mutex<RemoteMeshData>> = Lazy::new(|| Mutex::new(RemoteMeshData::new()));
 pub static DIMENSIONING: Lazy<Mutex<SnapMode>> = Lazy::new(|| Mutex::new(SnapMode::Disabled));
 pub static SLICER: Lazy<Mutex<ArrayF32State>> = Lazy::new(|| Mutex::new(ArrayF32State::new()));
@@ -25,7 +24,7 @@ pub unsafe fn debug_move_to(){
             //1904245 17193573
             m.values.push_back(RemoteCommand::MoveCameraToOID(1904245));
         }
-        Err(e) => { warn!("CANT LOCK changeSlicer MEM") }
+        Err(_e) => { warn!("CANT LOCK changeSlicer MEM") }
     }
 }
 
@@ -41,7 +40,7 @@ pub async unsafe fn wasm_changeSlicer(planes: Float32Array) {
             m.values.extend(&planes);
             m.is_dirty = true;
         }
-        Err(e) => { warn!("CANT LOCK changeSlicer MEM") }
+        Err(_e) => { warn!("CANT LOCK changeSlicer MEM") }
     }
 }
 
@@ -55,7 +54,7 @@ pub async unsafe fn wasm_movecamtostartpos() {
         Ok(mut m) => {
             m.values.push_back(RemoteCommand::MoveCameraToStartPos);
         }
-        Err(e) => { warn!("CANT LOCK changeSlicer MEM") }
+        Err(_e) => { warn!("CANT LOCK changeSlicer MEM") }
     }
 }
 
@@ -68,7 +67,7 @@ pub async unsafe fn wasm_movecamtooid(oid:i32) {
         Ok(mut m) => {
             m.values.push_back(RemoteCommand::MoveCameraToOID(oid));
         }
-        Err(e) => { warn!("CANT LOCK changeSlicer MEM") }
+        Err(_e) => { warn!("CANT LOCK changeSlicer MEM") }
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -82,22 +81,22 @@ pub async unsafe fn enable_dimensioning(mode:i32) {
             match mode {
                 mode if mode == SnapMode::Vertex as i32 => {
                     *curr_value=SnapMode::Vertex;
-                    { warn!("MODE IS {}",mode) }
+                    warn!("MODE IS {}",mode)
                 },
                 mode if mode == SnapMode::Edge as i32 => {
                     *curr_value=SnapMode::Edge;
-                    { warn!("MODE IS {}",mode) }
+                    warn!("MODE IS {}",mode)
                 },
                 mode if mode ==  SnapMode::Disabled as i32 =>{
                     *curr_value=SnapMode::Disabled;
-                    { warn!("MODE IS {}",mode) }
+                    warn!("MODE IS {}",mode)
                 },
                 _ => {
 
                 }
             }
         }
-        Err(e) => { warn!("CANT LOCK DIMENSIONING MEM") }
+        Err(_e) => { warn!("CANT LOCK DIMENSIONING MEM") }
     }
 }
 
@@ -137,7 +136,7 @@ pub async unsafe fn wasm_unpack_hull(arr_v: Uint8Array, arr_i: Uint8Array, arr_b
             m.decoded_b.extend_from_slice(decoded_b.as_slice());
             m.decoded_t.extend_from_slice(decoded_t.as_slice());
         }
-        Err(e) => { warn!("CANT LOCK REMOTE_HULL_MESH MEM") }
+        Err(_e) => { warn!("CANT LOCK REMOTE_HULL_MESH MEM") }
     }
     true
 }

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use truck_base::bounding_box::BoundingBox;
 use crate::scene::RawMesh;
-use crate::shared::{ANGLE_SUBDIVISIONS, CABLE_EDGE_COLOR, CABLE_EDGE_RADIUS, CABLE_NODE_COLOR, PIPE_PRIME_TYPE, Triangle};
+use crate::shared::{ANGLE_SUBDIVISIONS, CABLE_EDGE_RADIUS, PIPE_PRIME_TYPE, Triangle};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PipePrimitive {
@@ -36,7 +36,7 @@ impl PipePrimitive {
 
         let v_orig: Vector3<f32> =self.p_b.sub(self.p_a);
         let v: Vector3<f32> = v_orig.normalize();
-        let mut radius_dir1: Vector3<f32> = PipePrimitive::generate_perpendicular(v);
+        let radius_dir1: Vector3<f32> = PipePrimitive::generate_perpendicular(v);
 
         let translation0 = Matrix4::from_translation(radius_dir1.mul(CABLE_EDGE_RADIUS));
         let mut p0: Point3<f32> = translation0.transform_point(self.p_a);
@@ -53,7 +53,7 @@ impl PipePrimitive {
 
         let mut current_angle = step_angle;
         let mut indx = 0;
-        for i in 0..ANGLE_SUBDIVISIONS {
+        for _i in 0..ANGLE_SUBDIVISIONS {
             let rot_for_points: Basis3<f32> = Rotation3::from_axis_angle(v, Rad(current_angle));
             let radius_dir2: Vector3<f32> = rot_for_points.rotate_vector(radius_dir1);
             let translation = Matrix4::from_translation(radius_dir2.mul(CABLE_EDGE_RADIUS));
@@ -156,7 +156,7 @@ impl PipePrimitive {
             Vector3::new(xr, yr, zr).normalize()
         };
 
-        if (v.is_perpendicular(radius_dir1)) {
+        if v.is_perpendicular(radius_dir1) {
             radius_dir1
         } else {
             let radius_dir2: Vector3<f32> = {
@@ -165,7 +165,7 @@ impl PipePrimitive {
                 let yr = -(v.x * xr + v.z * zr) / v.y;
                 Vector3::new(xr, yr, zr).normalize()
             };
-            if (v.is_perpendicular(radius_dir2)) {
+            if v.is_perpendicular(radius_dir2) {
                 radius_dir2
             } else {
                 let radius_dir3: Vector3<f32> = {

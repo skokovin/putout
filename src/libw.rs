@@ -2,24 +2,22 @@ use std::rc::Rc;
 use log::{info, Level, warn};
 use parking_lot::RwLock;
 
-use web_sys::{CssStyleDeclaration, HtmlCanvasElement, window};
+use web_sys::{CssStyleDeclaration};
 use wgpu::{Adapter, Device, Features, Instance, Limits, Queue, RequestAdapterOptions};
-use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{DeviceEvent, Event, MouseScrollDelta, TouchPhase, WindowEvent};
+use winit::dpi::{PhysicalSize};
+use winit::event::{DeviceEvent, Event, TouchPhase, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 use crate::device::device_state::DeviceState;
 use crate::device::message_controller::{MessageController, SMEvent};
 use crate::device::window_state::WindowState;
-use crate::gui::camera_base::CameraMode;
-use cgmath::num_traits::Float;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::{JsCast, JsValue};
+
+
+
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::wasm_bindgen;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_futures::js_sys::Object;
+
 use crate::shared::text_layout::TextLayout;
 
 mod device;
@@ -36,7 +34,8 @@ pub async fn runrust() {
 
     let (instance, adapter, device, queue) = {
         let mut limits: Limits = Limits::default();
-        limits.max_buffer_size = (312346440 + 6440) * 5;
+        limits.max_buffer_size = (134217728) * 16;//128*20=2560 MB //WASM ONLY 2 Gb
+        limits.max_storage_buffer_binding_size= (134217728) * 16-4; //(134217728) * 16;
         let _instance: Instance = Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             flags: Default::default(),
@@ -52,7 +51,7 @@ pub async fn runrust() {
 
         let is_multi_draw_indirect = _adapter.features().contains(Features::MULTI_DRAW_INDIRECT);
         let (_device, _queue): (Device, Queue) = {
-            if (is_multi_draw_indirect) {
+            if is_multi_draw_indirect {
                 let (device, queue) = _adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: None,
@@ -60,7 +59,7 @@ pub async fn runrust() {
                         required_limits: limits,
                     },
                     None,
-                ).await.unwrap_or_else({ |_| panic!("Cant init device") });
+                ).await.unwrap_or_else(|_| panic!("Cant init device"));
                 ;
                 (device, queue)
             } else {
@@ -71,11 +70,15 @@ pub async fn runrust() {
                         required_limits: limits,
                     },
                     None,
-                ).await.unwrap_or_else({ |_| panic!("Cant init queue") });
+                ).await.unwrap_or_else(|_| panic!("Cant init queue"));
                 ;
                 (device, queue)
             }
         };
+
+        let max_b_size=_device.limits().max_buffer_size;
+        let max_bin_size=_device.limits().max_storage_buffer_binding_size;
+        warn!("SIZES {} {}",max_b_size,max_bin_size);
 
         let instance: Rc<RwLock<Instance>> = Rc::new(RwLock::new(_instance));
         let adapter: Rc<RwLock<Adapter>> = Rc::new(RwLock::new(_adapter));
@@ -102,7 +105,7 @@ pub async fn runrust() {
                             //info!("HTML ROOM SIZE IS {} {}",sw,sh);
                             match WindowBuilder::new().with_inner_size(ws).build(&event_loop) {
                                 Ok(window) => {
-                                    let scale_factor = window.scale_factor() as f32;
+                                    let _scale_factor = window.scale_factor() as f32;
                                     info!("window ROOM SIZE IS {} {}",window.inner_size().width,window.inner_size().height);
                                     match window.canvas() {
                                         None => { panic!("CANT GET CANVAS") }
@@ -113,10 +116,10 @@ pub async fn runrust() {
                                             let _ = canvas_style.set_property_with_priority("height", "99%", "");
                                             match dst.append_child(&canvas).ok() {
                                                 None => { panic!("CANT ATTACH CANVAS") }
-                                                Some(n) => {
+                                                Some(_n) => {
                                                     warn! {"ATTACHED CANVAS SIZE is :{} {}",canvas.client_width(),canvas.client_height()}
-                                                    let sw = &canvas.client_width();
-                                                    let sh = &canvas.client_height();
+                                                    let _sw = &canvas.client_width();
+                                                    let _sh = &canvas.client_height();
 
 
                                                     //let ctx=canvas.get_context("2d").unwrap().unwrap().dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap();
@@ -165,11 +168,11 @@ pub async fn runrust() {
 
 
     event_loop.run(move |_event, elwt| {
-        if (!window_state.read().is_minimized()) {
+        if !window_state.read().is_minimized() {
             mc.write().on_render();
             match &_event {
                 Event::NewEvents(_start_cause) => {}
-                Event::WindowEvent { window_id, event } => {
+                Event::WindowEvent { window_id: _, event } => {
                     match event {
                         WindowEvent::Resized(physical_size) => {
                             window_state.write().resize(&physical_size, device.clone());
@@ -185,9 +188,9 @@ pub async fn runrust() {
                         WindowEvent::DroppedFile(_) => {}
                         WindowEvent::HoveredFile(_) => {}
                         WindowEvent::HoveredFileCancelled => {}
-                        WindowEvent::Focused(event) => {}
+                        WindowEvent::Focused(_event) => {}
                         WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-                            if (is_mouse_active) {
+                            if is_mouse_active {
                                 match message_controller.clone().write().get_sender().try_send(SMEvent::KeyBoardEvent((device_id.clone(), event.clone(), *is_synthetic))) {
                                     Ok(_) => {}
                                     Err(e) => {
@@ -196,26 +199,26 @@ pub async fn runrust() {
                                 }
                             }
                         }
-                        WindowEvent::ModifiersChanged(m) => {
+                        WindowEvent::ModifiersChanged(_m) => {
                             //warn!("{:?}",m);
                         }
                         WindowEvent::Ime(_) => {}
                         WindowEvent::CursorMoved { device_id, position } => {
-                            if (is_mouse_active) {
+                            if is_mouse_active {
                                 //mc.write().scene_state.camera.on_mouse(device_id.clone(), position.clone());
                                 mc.write().on_mouse_move(device_id.clone(), position.clone());
                             }
                         }
-                        WindowEvent::CursorEntered { device_id } => {
+                        WindowEvent::CursorEntered { device_id: _ } => {
                             is_mouse_active = true;
                         }
-                        WindowEvent::CursorLeft { device_id } => {
+                        WindowEvent::CursorLeft { device_id: _ } => {
                             is_mouse_active = false;
                             //mc.write().scene_state.camera.relese_mouse();
                         }
-                        WindowEvent::MouseWheel { device_id, delta, phase } => {}
+                        WindowEvent::MouseWheel { device_id: _, delta: _, phase: _ } => {}
                         WindowEvent::MouseInput { device_id, state, button } => {
-                            if (is_mouse_active) {
+                            if is_mouse_active {
                                 match message_controller.clone().write().get_sender().try_send(SMEvent::MouseButtonEvent((device_id.clone(), state.clone(), button.clone()))) {
                                     Ok(_) => {}
                                     Err(e) => {
@@ -239,7 +242,7 @@ pub async fn runrust() {
                                 device_state.clone().as_ref().write().render(&window_state);
                             }
 
-                            if(mc.read().is_capture_screen_requested){
+                            if mc.read().is_capture_screen_requested {
                                 device_state.clone().as_ref().write().capture_screen(&window_state);
                                 mc.write().is_capture_screen_requested=false;
                             }
@@ -253,15 +256,15 @@ pub async fn runrust() {
                     match event {
                         DeviceEvent::Added => {}
                         DeviceEvent::Removed => {}
-                        DeviceEvent::MouseMotion { delta } => {}
+                        DeviceEvent::MouseMotion { delta: _ } => {}
                         DeviceEvent::MouseWheel { delta } => {
-                            if (is_mouse_active) {
+                            if is_mouse_active {
                                 mc.write().on_zoom(device_id.clone(), delta.clone(),  TouchPhase::Started);
                             }
                         }
-                        DeviceEvent::Motion { axis, value } => {}
-                        DeviceEvent::Button { button, state } => {}
-                        DeviceEvent::Key(key) => {}
+                        DeviceEvent::Motion { axis: _, value: _ } => {}
+                        DeviceEvent::Button { button: _, state: _ } => {}
+                        DeviceEvent::Key(_key) => {}
                     }
                 }
                 Event::UserEvent(_ue) => {}

@@ -4,11 +4,11 @@ use std::rc::Rc;
 use cgmath::num_traits::Float;
 use env_logger::{Builder, Target};
 use log::{info, LevelFilter, warn};
-use parking_lot::{RawRwLock, RwLock};
-use tokio::sync::mpsc::error::TrySendError;
+use parking_lot::{RwLock};
+
 use wgpu::{Adapter, Device, Features, Instance, Limits, Queue, RequestAdapterOptions};
 use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{DeviceId, Event, MouseButton, WindowEvent};
+use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 
 use winit::window::WindowBuilder;
@@ -35,7 +35,8 @@ fn main() {
 
     let (instance, adapter, device, queue) = {
         let mut limits: Limits = Limits::default();
-        limits.max_buffer_size = (312346440 + 6440) * 5;
+        limits.max_buffer_size = (134217728) * 20;//128*20=2560 MB
+        limits.max_storage_buffer_binding_size= (134217728) * 16;
         let _instance: Instance = Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             flags: Default::default(),
@@ -50,7 +51,7 @@ fn main() {
         let _adapter: Adapter = pollster::block_on(_instance.request_adapter(&adapter_options)).unwrap();
         let is_multi_draw_indirect = _adapter.features().contains(Features::MULTI_DRAW_INDIRECT);
         let (_device, _queue): (Device, Queue) = {
-            if (is_multi_draw_indirect) {
+            if is_multi_draw_indirect {
                 let (device, queue) = pollster::block_on(_adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: None,
@@ -109,11 +110,11 @@ fn main() {
     let window_state = _window_state.clone();
     let mc: Rc<RwLock<MessageController>> = message_controller.clone();
     event_loop.run(move |_event, elwt| {
-        if (!window_state.read().is_minimized()) {
+        if !window_state.read().is_minimized() {
             mc.write().on_render();
             match &_event {
                 Event::NewEvents(_start_cause) => {}
-                Event::WindowEvent { window_id, event } => {
+                Event::WindowEvent { window_id: _, event } => {
                     match event {
                         WindowEvent::Resized(physical_size) => {
                             window_state.write().resize(&physical_size, device.clone());
@@ -129,7 +130,7 @@ fn main() {
                         WindowEvent::DroppedFile(_) => {}
                         WindowEvent::HoveredFile(_) => {}
                         WindowEvent::HoveredFileCancelled => {}
-                        WindowEvent::Focused(event) => {}
+                        WindowEvent::Focused(_event) => {}
                         WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
 
 
@@ -140,7 +141,7 @@ fn main() {
                                 }
                             }
                         }
-                        WindowEvent::ModifiersChanged(m) => {
+                        WindowEvent::ModifiersChanged(_m) => {
                             //warn!("{:?}",m);
                         }
                         WindowEvent::Ime(_) => {}
@@ -151,20 +152,20 @@ fn main() {
                             match state {
                                 CameraMode::FLY => {
                                     let wsize = window_state.read().get_window_size();
-                                    let sf = window_state.read().get_scale_factor() as f32;
+                                    let _sf = window_state.read().get_scale_factor() as f32;
 
-                                    if (position.x < f64::epsilon()) {
+                                    if position.x < f64::epsilon() {
                                         window_state.write().set_cursor_position(PhysicalPosition::new(wsize.width, position.y as f32));
                                         mc.write().scene_state.camera.relese_mouse();
-                                    } else if ((wsize.width as f32 - position.x as f32 - 1.0) < f32::epsilon()) {
+                                    } else if (wsize.width as f32 - position.x as f32 - 1.0) < f32::epsilon() {
                                         window_state.write().set_cursor_position(PhysicalPosition::new(0.0, position.y as f32));
                                         mc.write().scene_state.camera.relese_mouse();
                                     }
 
-                                    if (position.y < f64::epsilon()) {
+                                    if position.y < f64::epsilon() {
                                         window_state.write().set_cursor_position(PhysicalPosition::new(position.x as f32, wsize.height));
                                         mc.write().scene_state.camera.relese_mouse();
-                                    } else if ((wsize.height as f32 - position.y as f32 - 1.0) < f32::epsilon()) {
+                                    } else if (wsize.height as f32 - position.y as f32 - 1.0) < f32::epsilon() {
                                         window_state.write().set_cursor_position(PhysicalPosition::new(position.x as f32, 0.0));
                                         mc.write().scene_state.camera.relese_mouse();
                                     }
@@ -176,8 +177,8 @@ fn main() {
                                 CameraMode::TOUCH => {}
                             }
                         }
-                        WindowEvent::CursorEntered { device_id } => {}
-                        WindowEvent::CursorLeft { device_id } => {
+                        WindowEvent::CursorEntered { device_id: _ } => {}
+                        WindowEvent::CursorLeft { device_id: _ } => {
                             mc.write().scene_state.camera.relese_mouse();
                         }
                         WindowEvent::MouseWheel { device_id, delta, phase } => {
@@ -207,7 +208,7 @@ fn main() {
                             }
                           
 
-                            if(mc.read().is_capture_screen_requested){
+                            if mc.read().is_capture_screen_requested {
                                 device_state.clone().as_ref().write().capture_screen(&window_state);
                                 mc.write().is_capture_screen_requested=false;
                             }
@@ -215,7 +216,7 @@ fn main() {
                         WindowEvent::ActivationTokenDone { .. } => {}
                     }
                 }
-                Event::DeviceEvent { device_id, event } => {}
+                Event::DeviceEvent { device_id: _, event: _ } => {}
                 Event::UserEvent(_ue) => {}
                 Event::Suspended => {}
                 Event::Resumed => {}

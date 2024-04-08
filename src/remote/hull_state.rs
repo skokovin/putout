@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::sync::Mutex;
-use itertools::Itertools;
+
 use log::{Level, warn};
 use once_cell::sync::Lazy;
 use crate::remote::HashI32State;
@@ -29,7 +29,7 @@ pub async unsafe fn hull_add_selected(_ids: Int32Array) {
             m.is_dirty = true;
             warn!("SELECTED {} ADDED, TOTAL {}",ids.len(),m.values.len());
         }
-        Err(e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
+        Err(_e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
     }
 }
 
@@ -45,7 +45,7 @@ pub async unsafe fn hull_add_hidden(_ids: Int32Array) {
             m.is_dirty = true;
             warn!("HIDDEN {} ADDED, TOTAL {}",ids.len(),m.values.len());
         }
-        Err(e) => { warn!("CANT LOCK HIDDEN SHARED MEM") }
+        Err(_e) => { warn!("CANT LOCK HIDDEN SHARED MEM") }
     }
 }
 
@@ -60,7 +60,7 @@ pub async unsafe fn hull_clear_selected() {
             m.is_dirty = true;
             warn!("SELECTED CLEARED");
         }
-        Err(e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
+        Err(_e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
     }
 }
 
@@ -76,7 +76,7 @@ pub async unsafe fn hull_clear_hidden() {
             m.is_dirty = true;
             warn!("SELECTED CLEARED");
         }
-        Err(e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
+        Err(_e) => { warn!("CANT LOCK SELECTED SHARED MEM") }
     }
 }
 

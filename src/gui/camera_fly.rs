@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 use std::rc::Rc;
-use cgmath::{InnerSpace, Matrix4, One, Point3, Quaternion, Rad, Rotation, Rotation3, SquareMatrix, Vector3, Zero};
+use cgmath::{InnerSpace, Matrix4, One, Point3, Quaternion, Rad, Rotation, Rotation3, SquareMatrix, Vector3};
 use parking_lot::RwLock;
 use truck_base::bounding_box::BoundingBox;
 use crate::gui::camera_base::{FlyActions, SHIP_FORWARD, SHIP_RIGHT, SHIP_UP};
@@ -76,10 +76,10 @@ impl CameraFly {
     }
 
     pub fn update_mouse(&mut self, relative_dx: f32, relative_dy: f32) {
-        self.yaw += (relative_dx * self.mouse_sensitivity_horizontal);
-        self.pitch += (relative_dy * self.mouse_sensitivity_vertical);
-        if (self.pitch < -PI / 4.0) { self.pitch = -PI / 4.0 }
-        if (self.pitch > PI / 4.0) { self.pitch = PI / 4.0 }
+        self.yaw += relative_dx * self.mouse_sensitivity_horizontal;
+        self.pitch += relative_dy * self.mouse_sensitivity_vertical;
+        if self.pitch < -PI / 4.0 { self.pitch = -PI / 4.0 }
+        if self.pitch > PI / 4.0 { self.pitch = PI / 4.0 }
         self.rotate();
     }
 
@@ -92,28 +92,28 @@ impl CameraFly {
     }
 
     fn do_transitions(&mut self) {
-        if (!self.fly_actions.is_empty()) {
-            if (self.fly_actions.contains(FlyActions::MOVE_FORWARD) && !self.fly_actions.contains(FlyActions::MOVE_BACKWARD)) {
+        if !self.fly_actions.is_empty() {
+            if self.fly_actions.contains(FlyActions::MOVE_FORWARD) && !self.fly_actions.contains(FlyActions::MOVE_BACKWARD) {
                 self.move_forward();
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_BACKWARD) && !self.fly_actions.contains(FlyActions::MOVE_FORWARD)) {
+            if self.fly_actions.contains(FlyActions::MOVE_BACKWARD) && !self.fly_actions.contains(FlyActions::MOVE_FORWARD) {
                 self.move_back();
             }
 
-            if (self.fly_actions.contains(FlyActions::STRAFE_LEFT) && !self.fly_actions.contains(FlyActions::STRAFE_RIGHT)) {
+            if self.fly_actions.contains(FlyActions::STRAFE_LEFT) && !self.fly_actions.contains(FlyActions::STRAFE_RIGHT) {
                 self.move_left();
             }
-            if (self.fly_actions.contains(FlyActions::STRAFE_RIGHT) && !self.fly_actions.contains(FlyActions::STRAFE_LEFT)) {
+            if self.fly_actions.contains(FlyActions::STRAFE_RIGHT) && !self.fly_actions.contains(FlyActions::STRAFE_LEFT) {
                 self.move_right();
             }
 
-            if (self.fly_actions.contains(FlyActions::FLY_DOWN) && !self.fly_actions.contains(FlyActions::FLY_UP)) {
+            if self.fly_actions.contains(FlyActions::FLY_DOWN) && !self.fly_actions.contains(FlyActions::FLY_UP) {
                 self.move_down();
             }
-            if (self.fly_actions.contains(FlyActions::FLY_UP) && !self.fly_actions.contains(FlyActions::FLY_DOWN)) {
+            if self.fly_actions.contains(FlyActions::FLY_UP) && !self.fly_actions.contains(FlyActions::FLY_DOWN) {
                 self.move_up();
             }
-            if (self.fly_actions.contains(FlyActions::MOVE_FASTER)) {
+            if self.fly_actions.contains(FlyActions::MOVE_FASTER) {
                 //self.velocity =  400.0;
             } else {
                 //self.velocity = 3.0;

@@ -1,29 +1,29 @@
 use std::{iter, mem};
-use std::cmp::PartialEq;
-use std::future::Future;
+
+
 use std::mem::size_of;
-use std::ops::{Mul, Range};
+use std::ops::{Range};
 use std::rc::Rc;
-use cgmath::{EuclideanSpace, Matrix4, Point3, Vector4};
+use cgmath::{Point3};
 
 use itertools::Itertools;
-use log::{info, warn};
-use nalgebra::Point4;
-use parking_lot::{RawRwLock, RwLock};
-use parking_lot::lock_api::RwLockWriteGuard;
-use pollster::FutureExt;
-use tokio::sync::mpsc::error::{SendError, TrySendError};
-use tokio::sync::mpsc::{Receiver, Sender};
+
+
+use parking_lot::{RwLock};
 
 
 
-use wgpu::{Adapter, BindGroup, Buffer, BufferAsyncError, BufferSlice, BufferView, CommandEncoder, COPY_BYTES_PER_ROW_ALIGNMENT, Device, Extent3d, Features, Instance, Limits, LoadOp, Operations, Queue, RenderPass, RenderPassColorAttachment, RenderPassDescriptor, RequestAdapterOptions, StoreOp, Texture, TextureFormat, TextureView, TextureViewDescriptor};
+
+
+
+
+use wgpu::{Adapter, BindGroup, CommandEncoder, COPY_BYTES_PER_ROW_ALIGNMENT, Device, Extent3d, Features, Instance, LoadOp, Operations, Queue, RenderPass, RenderPassColorAttachment, RenderPassDescriptor, StoreOp, Texture, TextureFormat, TextureView, TextureViewDescriptor};
 use winit::dpi::PhysicalSize;
 
-use crate::device::message_controller::{MessageController, SMEvent, SnapMode};
+use crate::device::message_controller::{MessageController, SnapMode};
 use crate::device::window_state::WindowState;
 use crate::shared::dimension::Dimension;
-use crate::shared::materials_lib::Material;
+
 use crate::shared::screen_capture::ScreenCapture;
 
 pub const BACKGROUND_COLOR1: wgpu::Color = wgpu::Color {
@@ -120,7 +120,7 @@ impl DeviceState {
                 });
 
                 {
-                    let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let _render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass1"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,
@@ -143,38 +143,38 @@ impl DeviceState {
                     });
                 }
 
-                //HULL_RENDERING
-                if (HULL_ENABLE && mc.scene_state.hull_index_buffer.size() > 0) {
-                    let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass HULL"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &depth_view,
-                            depth_ops: Some(wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: StoreOp::Store,
+                //SCENE_RENDERING
+                mc.scene_state.gpu_mems.iter().for_each(|mem|{
+                    if(mem.is_renderable){
+                        let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass HULL"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                                view: &depth_view,
+                                depth_ops: Some(wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                }),
+                                stencil_ops: None,
                             }),
-                            stencil_ops: None,
-                        }),
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    render_pass.set_pipeline(&pl.mesh_render_pipeline);
-
-                    render_pass.set_bind_group(0, &bg, &[]);
-                    render_pass.set_vertex_buffer(0, mc.scene_state.hull_vertex_buffer.slice(..));
-                    render_pass.set_index_buffer(mc.scene_state.hull_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                    let indx_count = (mc.scene_state.hull_index_buffer.size() / mem::size_of::<i32>() as u64) as u32;
-                    render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
-                }
-
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+                        render_pass.set_pipeline(&pl.mesh_render_pipeline);
+                        render_pass.set_bind_group(0, &bg, &[]);
+                        render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
+                        render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                        let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
+                        render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
+                    }
+                });
                 //snap rendering
                 {
                     let bs: BindGroup = pl.bind_snap_group(&device, &mc.shared_buffers);
@@ -208,7 +208,7 @@ impl DeviceState {
 
                 //text_rendering
                 let text_layput_handler=mc.text_layout.clone();
-                let mut text_layput =text_layput_handler.write();
+                let text_layput =text_layput_handler.write();
                 {
                     let mut pass: RenderPass = encoder.begin_render_pass(&RenderPassDescriptor {
                         label: None,
@@ -237,84 +237,115 @@ impl DeviceState {
 
     #[inline]
     pub fn capture_screen(&mut self, _ws: &RwLock<WindowState>) {
-        if (!self.screen_capture.is_captured()) {
+        if !self.screen_capture.is_captured() {
             let ws = _ws.read();
             let mc = self.mc.read();
             let window_size: PhysicalSize<f32> = ws.get_window_size();
             let w = window_size.width as u32;
             let h = window_size.height as u32;
-            let sf = ws.get_scale_factor() as f32;
-            let indx_count = (mc.scene_state.hull_index_buffer.size() / mem::size_of::<i32>() as u64) as u32;
-            if (indx_count != 0) {
-                let sel_texture_desc = wgpu::TextureDescriptor {
-                    size: wgpu::Extent3d {
-                        width: w,
-                        height: h,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: TextureFormat::Rgba32Float,
-                    usage: wgpu::TextureUsages::COPY_SRC
-                        | wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    label: None,
-                    view_formats: &[],
-                };
-                let sel_texture: Texture = self.device.read().create_texture(&sel_texture_desc);
+            let _sf = ws.get_scale_factor() as f32;
 
-                let sel_texture_view: TextureView = sel_texture.create_view(&Default::default());
-                let sel_depth_texture: Texture = self.device.read().create_texture(&wgpu::TextureDescriptor {
-                    size: Extent3d {
-                        width: w,
-                        height: h,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: TextureFormat::Depth32Float,
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    label: None,
-                    view_formats: &[],
-                });
-                let sel_depth_view: TextureView = sel_depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-                let mut sel_encoder: CommandEncoder = self.device.read().create_command_encoder(
-                    &wgpu::CommandEncoderDescriptor { label: Some("Selection Encoder D") });
-                let pl = ws.mesh_pipeline.read();
-                let bg: BindGroup = pl.bind_mesh_group(&self.device.read(), &mc.shared_buffers);
-                let queue = self.queue.read();
+            let sel_texture_desc = wgpu::TextureDescriptor {
+                size: wgpu::Extent3d {
+                    width: w,
+                    height: h,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: TextureFormat::Rgba32Sint,
+                usage: wgpu::TextureUsages::COPY_SRC
+                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                label: None,
+                view_formats: &[],
+            };
+            let sel_texture: Texture = self.device.read().create_texture(&sel_texture_desc);
 
-                //DRAW TO BOFFER
-                {
-                    let mut sel_render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass HULL"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &sel_texture_view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(BACKGROUND_COLOR),
-                                store: StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &sel_depth_view,
-                            depth_ops: Some(wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(1.0),
-                                store: StoreOp::Store,
-                            }),
-                            stencil_ops: None,
+            let sel_texture_view: TextureView = sel_texture.create_view(&Default::default());
+            let sel_depth_texture: Texture = self.device.read().create_texture(&wgpu::TextureDescriptor {
+                size: Extent3d {
+                    width: w,
+                    height: h,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: TextureFormat::Depth32Float,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                label: None,
+                view_formats: &[],
+            });
+            let sel_depth_view: TextureView = sel_depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let mut sel_encoder: CommandEncoder = self.device.read().create_command_encoder(
+                &wgpu::CommandEncoderDescriptor { label: Some("Selection Encoder D") });
+            let pl = ws.mesh_pipeline.read();
+            let bg: BindGroup = pl.bind_mesh_group(&self.device.read(), &mc.shared_buffers);
+            let queue = self.queue.read();
+            let mut is_done=false;
+
+            {
+                let _render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Render Pass1"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &sel_texture_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(BACKGROUND_COLOR),
+                            store: StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &sel_depth_view,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(1.0),
+                            store: StoreOp::Store,
                         }),
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    sel_render_pass.set_pipeline(&pl.selection_render_pipeline);
-                    sel_render_pass.set_bind_group(0, &bg, &[]);
-                    sel_render_pass.set_vertex_buffer(0, mc.scene_state.hull_vertex_buffer.slice(..));
-                    sel_render_pass.set_index_buffer(mc.scene_state.hull_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                    sel_render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+            }
+
+            //DRAW TO BUFFER
+            mc.scene_state.gpu_mems.iter().for_each(|mem|{
+                if(mem.is_renderable){
+                    {   let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
+                        let mut sel_render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass HULL"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &sel_texture_view,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                                view: &sel_depth_view,
+                                depth_ops: Some(wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                }),
+                                stencil_ops: None,
+                            }),
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+
+                        sel_render_pass.set_pipeline(&pl.selection_render_pipeline);
+                        sel_render_pass.set_bind_group(0, &bg, &[]);
+                        sel_render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
+                        sel_render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                        sel_render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
+                        is_done=true;
+                    }
                 }
-                //Copy Buffer to Host
+            });
+            //Copy Buffer to Host
+            if(is_done){
                 {
                     let image_width = COPY_BYTES_PER_ROW_ALIGNMENT * (w / COPY_BYTES_PER_ROW_ALIGNMENT);
 
@@ -349,6 +380,7 @@ impl DeviceState {
                     self.screen_capture.copy_to_host();
                 }
             }
+
         } else {
             self.screen_capture.refresh(self.mc.clone());
         }
@@ -357,10 +389,39 @@ impl DeviceState {
     fn update_shared_buffers(&self, scale_factor: f64) {
         let slicer_is_dirty = self.mc.read().scene_state.slicer.is_dirty;
         let materials_is_dirty = self.mc.read().is_materials_dirty;
-        let hull_metadata_is_dirty = self.mc.read().scene_state.is_hull_metadata_dirty;
-        let snap_mode: SnapMode = self.mc.read().snap_mode.clone();
+        let _snap_mode: SnapMode = self.mc.read().snap_mode.clone();
 
-        if (materials_is_dirty) {
+        let is_metadata0_dirty = self.mc.read().scene_state.gpu_mems[0].is_metadata_dirty;
+        let is_metadata1_dirty = self.mc.read().scene_state.gpu_mems[1].is_metadata_dirty;
+        let is_metadata2_dirty = self.mc.read().scene_state.gpu_mems[2].is_metadata_dirty;
+        let is_metadata3_dirty = self.mc.read().scene_state.gpu_mems[3].is_metadata_dirty;
+
+        if is_metadata0_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[0].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata0(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[0].reset_dirty_metadata();
+        }
+
+        if is_metadata1_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[1].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata1(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[1].reset_dirty_metadata();
+        }
+
+        if is_metadata2_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[2].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata2(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[2].reset_dirty_metadata();
+        }
+
+        if is_metadata3_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[3].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata3(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[3].reset_dirty_metadata();
+        }
+
+
+        if materials_is_dirty {
             self.mc.write().reset_material_dirty();
             let mats = &self.mc.read().materials;
             let mcw = self.mc.read();
@@ -368,18 +429,12 @@ impl DeviceState {
         }
 
 
-        if (slicer_is_dirty) {
+        if slicer_is_dirty {
             let sp = self.mc.read().scene_state.slicer.slice_positions();
             let arr: [f32; 6] = [sp.0, sp.1, sp.2, sp.3, sp.4, sp.5];
             self.mc.write().shared_buffers.update_slicer(self.queue.clone(), &arr);
             self.mc.write().scene_state.slicer.reset_dirty();
         };
-
-        if (hull_metadata_is_dirty) {
-            let hmd = &self.mc.read().scene_state.hull_metadata.clone();
-            self.mc.write().shared_buffers.update_hull_metadata(self.device.clone(), self.queue.clone(), hmd);
-            self.mc.write().scene_state.reset_dirty_hull_metadata();
-        }
 
         {
             let active_point: Point3<f32> = self.mc.read().active_point.clone();

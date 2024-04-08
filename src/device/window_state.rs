@@ -1,15 +1,13 @@
 use std::rc::Rc;
-use log::{info, warn};
+use log::{info};
 use parking_lot::RwLock;
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_futures::js_sys::Object;
-use web_sys::{GpuCanvasConfiguration, GpuCanvasContext, HtmlCanvasElement, window};
-use wgpu::{Adapter, Device, Instance, Surface, SurfaceCapabilities, SurfaceConfiguration, SurfaceError, SurfaceTexture, TextureFormat};
+
+
+use web_sys::{HtmlCanvasElement};
+use wgpu::{Adapter, Device, Instance, Surface, SurfaceCapabilities, SurfaceConfiguration, TextureFormat};
 use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{DeviceId, KeyEvent};
+
 use winit::window::{CursorGrabMode, Window};
 use crate::device::device_state::DeviceState;
 use crate::shared::highlight_pipeline::HighlightPipeLine;
@@ -97,7 +95,7 @@ impl WindowState {
         self.surface.configure(&device.clone().read(), &self.config);
     }
     #[cfg(target_arch = "wasm32")]
-    pub fn resize(&mut self, size: &PhysicalSize<u32>,  device: Rc<RwLock<Device>>) {}
+    pub fn resize(&mut self, _size: &PhysicalSize<u32>,  _device: Rc<RwLock<Device>>) {}
     pub fn request_redraw(&mut self, device_state: &RwLock<DeviceState>) {
         #[cfg(target_arch = "wasm32")]
         {
@@ -134,10 +132,10 @@ impl WindowState {
                     }
 
 */
-                    if (ctw != cw || cth != ch) {
+                    if ctw != cw || cth != ch {
                         self.config.width = cw;
                         self.config.height = ch;
-                        let ds=device_state.clone();
+                        let ds=device_state;
                         let dev=ds.read().device.clone();
                         self.surface.configure(&dev.read(), &self.config);
                     }
@@ -148,9 +146,9 @@ impl WindowState {
     }
 
     pub fn get_window_size(&self) -> PhysicalSize<f32> {
-        let scale_factor = 1.0 as f32;
+        let _scale_factor = 1.0 as f32;
         let is = self.window.inner_size();
-        let os = self.window.outer_size();
+        let _os = self.window.outer_size();
         PhysicalSize::new(is.width as f32, is.height as f32)
     }
     pub fn get_scale_factor(&self) -> f64 {
@@ -167,7 +165,7 @@ impl WindowState {
     }
 
     pub fn change_cursor_mode(&mut self) {
-        if (self.window_mode == WindowMode::CursorVisible) {
+        if self.window_mode == WindowMode::CursorVisible {
             self.window_mode = WindowMode::CursorInVisible;
             self.hide_cursor();
         } else {

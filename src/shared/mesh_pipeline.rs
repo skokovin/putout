@@ -97,6 +97,36 @@ impl MeshPipeLine {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
             label: Some("mesh Bind Group Layout"),
         });
@@ -218,6 +248,36 @@ impl MeshPipeLine {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 6,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
                     visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
@@ -355,6 +415,36 @@ impl MeshPipeLine {
                     },
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
             label: Some("mesh Bind Group Layout"),
         });
@@ -376,7 +466,7 @@ impl MeshPipeLine {
                 entry_point: "fs_main",
                 targets: &[
                     Some(wgpu::ColorTargetState {
-                        format: TextureFormat::Rgba32Float,
+                        format: TextureFormat::Rgba32Sint,
                         blend: None,
                         write_mask: wgpu::ColorWrites::ALL, })
                 ],
@@ -419,7 +509,10 @@ impl MeshPipeLine {
         let mode_buffer = shred_buffers.mode_buffer.clone();
         let slice_buffer = shred_buffers.slice_buffer.clone();
         let snap_buffer = shred_buffers.snap_buffer.clone();
-        let hull_metadata_buffer = shred_buffers.hull_metadata_buffer.clone();
+        let  metadata_buffer0 = shred_buffers.metadata_buffer0.clone();
+        let  metadata_buffer1 = shred_buffers.metadata_buffer1.clone();
+        let  metadata_buffer2 = shred_buffers.metadata_buffer2.clone();
+        let  metadata_buffer3 = shred_buffers.metadata_buffer3.clone();
 
         let mesh_uniform_bind_group: BindGroup = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.mesh_bind_group_layout,
@@ -450,7 +543,19 @@ impl MeshPipeLine {
                 },
                 wgpu::BindGroupEntry {
                     binding: 6,
-                    resource: hull_metadata_buffer.read().as_entire_binding(),
+                    resource: metadata_buffer0.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: metadata_buffer1.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: metadata_buffer2.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: metadata_buffer3.read().as_entire_binding(),
                 },
             ],
             label: Some("Mesh Bind Group"),
@@ -465,7 +570,10 @@ impl MeshPipeLine {
         let mode_buffer = shred_buffers.mode_buffer.clone();
         let slice_buffer = shred_buffers.slice_buffer.clone();
         let snap_buffer = shred_buffers.snap_buffer.clone();
-        let hull_metadata_buffer = shred_buffers.hull_metadata_buffer.clone();
+        let  metadata_buffer0 = shred_buffers.metadata_buffer0.clone();
+        let  metadata_buffer1 = shred_buffers.metadata_buffer1.clone();
+        let  metadata_buffer2 = shred_buffers.metadata_buffer2.clone();
+        let  metadata_buffer3 = shred_buffers.metadata_buffer3.clone();
 
         let selection_uniform_bind_group: BindGroup = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.selection_bind_group_layout,
@@ -496,7 +604,19 @@ impl MeshPipeLine {
                 },
                 wgpu::BindGroupEntry {
                     binding: 6,
-                    resource: hull_metadata_buffer.read().as_entire_binding(),
+                    resource: metadata_buffer0.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: metadata_buffer1.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: metadata_buffer2.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: metadata_buffer3.read().as_entire_binding(),
                 },
             ],
             label: Some("Selection Bind Group"),
@@ -512,7 +632,11 @@ impl MeshPipeLine {
         let mode_buffer = shred_buffers.mode_buffer.clone();
         let slice_buffer = shred_buffers.slice_buffer.clone();
         let snap_buffer = shred_buffers.snap_buffer.clone();
-        let hull_metadata_buffer = shred_buffers.hull_metadata_buffer.clone();
+        let  metadata_buffer0 = shred_buffers.metadata_buffer0.clone();
+        let  metadata_buffer1 = shred_buffers.metadata_buffer1.clone();
+        let  metadata_buffer2 = shred_buffers.metadata_buffer2.clone();
+        let  metadata_buffer3 = shred_buffers.metadata_buffer3.clone();
+
         let snap_uniform_bind_group: BindGroup = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.snap_bind_group_layout,
             entries: &[
@@ -542,7 +666,19 @@ impl MeshPipeLine {
                 },
                 wgpu::BindGroupEntry {
                     binding: 6,
-                    resource: hull_metadata_buffer.read().as_entire_binding(),
+                    resource: metadata_buffer0.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: metadata_buffer1.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: metadata_buffer2.read().as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: metadata_buffer3.read().as_entire_binding(),
                 },
             ],
             label: Some("Snap Bind Group"),

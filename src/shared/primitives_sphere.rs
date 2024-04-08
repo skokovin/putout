@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use truck_base::bounding_box::BoundingBox;
 use crate::scene::RawMesh;
-use crate::shared::{ANGLE_SUBDIVISIONS, CABLE_NODE_COLOR, SPHERE_PRIME_TYPE, Triangle, TriMesh};
+use crate::shared::{ANGLE_SUBDIVISIONS, SPHERE_PRIME_TYPE, Triangle, TriMesh};
 
 
 
@@ -27,7 +27,7 @@ impl SpherePrimitive {
     }
     pub fn triangulate(&self) -> RawMesh {
         let mut triangles: Vec<Triangle> = vec![];
-        let mut sphere = sphere(self.radius, self.center.x, self.center.y, self.center.z);
+        let sphere = sphere(self.radius, self.center.x, self.center.y, self.center.z);
         let vrtxs = sphere.positions;
         let normals = sphere.normals;
         let mut indx: Vec<i32> = vec![];

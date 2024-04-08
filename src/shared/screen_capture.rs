@@ -1,17 +1,19 @@
 use std::ops::Sub;
 use std::rc::Rc;
+use std::str::FromStr;
 use cgmath::{InnerSpace, Point3, Vector3};
 use cgmath::num_traits::Float;
-use itertools::Itertools;
-use log::warn;
+
+
 use parking_lot::RwLock;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use truck_polymesh::Attributes;
-use wgpu::{Buffer, BufferSlice, BufferView, COPY_BYTES_PER_ROW_ALIGNMENT, Device};
-use crate::device::message_controller::{MessageController, SMEvent, SnapMode};
-use crate::scene::RawMesh;
-use crate::shared::mesh_common::MeshVertex;
+
+use wgpu::{Buffer, BufferSlice, BufferView, Device};
+use crate::device::message_controller::{MessageController, SnapMode};
+use crate::scene::gpu_mem::{unpack_id, unpack_packid};
+
+
 use crate::shared::Triangle;
 
 
@@ -19,7 +21,7 @@ pub struct ScreenCapture {
     window_width: usize,
     window_hight: usize,
     image_width: usize,
-    raw_image: Vec<f32>,
+    raw_image: Vec<i32>,
     sel_output_buffer: Rc<RwLock<Buffer>>,
     is_captured: bool,
     is_map_requested: bool,
@@ -30,7 +32,7 @@ pub struct ScreenCapture {
 
 impl ScreenCapture {
     pub fn new(device: Rc<RwLock<Device>>) -> Self {
-        let (tx, mut rx): (Sender<bool>, Receiver<bool>) = tokio::sync::mpsc::channel(16);
+        let (tx, rx): (Sender<bool>, Receiver<bool>) = tokio::sync::mpsc::channel(16);
         let sel_output_buffer_desc = wgpu::BufferDescriptor {
             size: (100 * 100 * 4) as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
@@ -60,7 +62,7 @@ impl ScreenCapture {
     pub fn refresh(&mut self, mc: Rc<RwLock<MessageController>>) {
         match self.receiver.try_recv() {
             Ok(_) => {
-                let mut result: Vec<f32> = vec![];
+                let mut result: Vec<i32> = vec![];
                 let handler = self.sel_output_buffer.clone();
                 {
                     let pointer = handler.read();
@@ -77,13 +79,13 @@ impl ScreenCapture {
                 self.is_captured = false;
                 self.is_map_requested = false;
             }
-            Err(e) => {}
+            Err(_e) => {}
         }
         let im_w: i32 = self.image_width as i32;
         let im_h = self.window_hight as i32;
         let x: i32 = {
             let mx = mc.read().get_mouse_pos().x as i32;
-            if (mx < 0) {
+            if mx < 0 {
                 0
             } else {
                 mx
@@ -91,24 +93,29 @@ impl ScreenCapture {
         };
         let y: i32 = {
             let my = mc.read().get_mouse_pos().y as i32;
-            if (my < 0) {
+            if my < 0 {
                 0
             } else {
                 my
             }
         };
-        if (self.raw_image.len() > 0 && !mc.read().is_capture_screen_requested) {
-            if ((im_w - x) > 10 && x > 10 && (im_h - y) > 10 && y > 10) {
+        if self.raw_image.len() > 0 && !mc.read().is_capture_screen_requested {
+            if (im_w - x) > 10 && x > 10 && (im_h - y) > 10 && y > 10 {
                 let indx = (im_w * y * 4 + x * 4) as usize;
                 let x0 = self.raw_image[indx];
                 let y0 = self.raw_image[indx + 1];
                 let z0 = self.raw_image[indx + 2];
-                let id0 = self.raw_image[indx + 3] as i32;
-                mc.write().active_id = id0;
-                mc.write().active_point = Point3::new(x0, y0, z0);
+                let id0 = self.raw_image[indx + 3].clone();
+
+
+
+                mc.write().active_id = unpack_id(id0 as u32);
+                mc.write().set_pack_id(unpack_packid(id0 as u32));
+                mc.write().active_point = Point3::new(x0 as f32/1000.0, y0 as f32/1000.0, z0 as f32/1000.0);
+                //println!("PACK_ID Fl={} {}", unpack_id(id0 as u32), unpack_packid(id0 as u32));
 
                 //IF SNAP ENABLED
-                if (mc.read().snap_mode != SnapMode::Disabled) {
+                if mc.read().snap_mode != SnapMode::Disabled {
                     let mut bricked: Vec<Vec<PixelData>> = vec![];
                     for row in y - 10..y + 11 {
                         let mut bricked_row: Vec<PixelData> = vec![];
@@ -117,17 +124,19 @@ impl ScreenCapture {
                             let x0 = self.raw_image[indx];
                             let y0 = self.raw_image[indx + 1];
                             let z0 = self.raw_image[indx + 2];
-                            let id0 = self.raw_image[indx + 3] as i32;
+                            let id0 = self.raw_image[indx + 3] as u32;
+
                             bricked_row.push(
                                 PixelData {
-                                    id: id0,
-                                    point_on_tri: Point3::new(x0, y0, z0),
+                                    id: unpack_id(id0),
+                                    pack_id: unpack_packid(id0),
+                                    point_on_tri: Point3::new(x0 as f32 /1000.0, y0 as f32/1000.0, z0 as f32/1000.0),
                                 }
                             );
                         }
                         bricked.push(bricked_row);
                     }
-                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist) = self.analyze_texels(mc.clone(), bricked);
+                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id) = self.analyze_texels(mc.clone(), bricked);
                     match snap_vrtx {
                         None => {
                             mc.write().active_point = Point3::new(f32::max_value(), f32::max_value(), f32::max_value());
@@ -135,14 +144,16 @@ impl ScreenCapture {
                         Some(snap_vrtx) => {
                             match edge_vrtx {
                                 None => {
-                                    mc.write().active_id = snap_shader_index;
+                                    mc.write().active_id = snap_shader_index as u32;
+                                    //mc.write().set_pack_id(pack_id);
                                     mc.write().active_point = snap_vrtx;
                                     //println!("ACTIVE ID {}",snap_mesh_id);
                                 }
-                                Some(edge) => {
-                                    mc.write().active_id = snap_shader_index;
+                                Some(_edge) => {
+                                    mc.write().active_id = snap_shader_index as u32;
+                                    //mc.write().set_pack_id(pack_id);
                                     //println!("ACTIVE ID {}",snap_mesh_id);
-                                    if (edge_vrtx_dist < snap_vrtx_dist) {
+                                    if edge_vrtx_dist < snap_vrtx_dist {
                                         //mc.write().active_point = edge;
                                         mc.write().active_point = snap_vrtx;
                                     } else {
@@ -153,7 +164,6 @@ impl ScreenCapture {
                         }
                     }
                 }
-
             }
         } else {
             mc.write().active_id = 0;
@@ -180,7 +190,7 @@ impl ScreenCapture {
 
     pub fn get_capture_buffer(&mut self, device: Rc<RwLock<Device>>, window_width: usize, window_hight: usize, image_width: usize) -> Rc<RwLock<Buffer>> {
         self.is_captured = true;
-        if (self.window_width != window_width || self.window_hight != window_hight) {
+        if self.window_width != window_width || self.window_hight != window_hight {
             self.window_width = window_width;
             self.window_hight = window_hight;
             self.image_width = image_width;
@@ -201,7 +211,7 @@ impl ScreenCapture {
 
     pub fn is_captured(&self) -> bool { self.is_captured }
 
-    fn analyze_texels(&mut self, mc: Rc<RwLock<MessageController>>, bricked: Vec<Vec<PixelData>>) -> (i32, Option<Point3<f32>>, f32, Option<Point3<f32>>, f32) {
+    fn analyze_texels(&mut self, mc: Rc<RwLock<MessageController>>, bricked: Vec<Vec<PixelData>>) -> (i32, Option<Point3<f32>>, f32, Option<Point3<f32>>, f32, u32) {
         let mouse_wpos = mc.read().scene_state.camera.mouse_wpos;
         let mouse_world_ray = mc.read().scene_state.camera.mouse_wray.normalize();
 
@@ -210,6 +220,7 @@ impl ScreenCapture {
         let mut snap_vrtx_dist: f32 = f32::max_value();
         let mut edge_vrtx: Option<Point3<f32>> = None;
         let mut edge_vrtx_dist: f32 = f32::max_value();
+        let mut pack_id: u32 = u32::max_value();
         let mut total = 0;
         for row in (1..21).step_by(3) {
             for col in (1..21).step_by(3) {
@@ -228,353 +239,362 @@ impl ScreenCapture {
                 //println!("CP {:?}",p00.id);
 
 
-                match mc.read().scene_state.get_hull_triangle_by_index(cp.id as usize) {
+                match mc.read().scene_state.get_triangle_by_index(cp.id as usize, cp.pack_id as usize) {
                     //CHECK OUTSIDE AREA
                     None => {
-                        match mc.read().scene_state.get_hull_triangle_by_index(p00.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p00.id as usize, p00.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p00.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p00.id;
+                                    snap_shader_index = p00.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p00.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p01.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p01.id as usize, p01.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p01.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p01.id;
+                                    snap_shader_index = p01.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p01.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p02.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p02.id as usize, p02.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p02.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p02.id;
+                                    snap_shader_index = p02.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p02.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p10.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p10.id as usize, p10.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p10.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p10.id;
+                                    snap_shader_index = p10.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p10.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p12.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p12.id as usize, p12.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p12.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p12.id;
+                                    snap_shader_index = p12.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p12.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p20.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p20.id as usize, p20.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p20.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p20.id;
+                                    snap_shader_index = p20.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p20.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p21.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p21.id as usize, p21.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p21.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p21.id;
+                                    snap_shader_index = p21.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p21.pack_id;
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p22.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p22.id as usize, p22.pack_id as usize) {
                             None => {}
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 let mouse_world_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(p22.point_on_tri).magnitude();
                                 let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(mouse_world_pos, loc_tri);
-                                if (vrtx_dist < snap_vrtx_dist) {
+                                if vrtx_dist < snap_vrtx_dist {
                                     snap_vrtx = Some(vrtx);
                                     snap_vrtx_dist = vrtx_dist;
-                                    snap_shader_index = p22.id;
+                                    snap_shader_index = p22.id as i32;
                                 }
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p22.pack_id;
                             }
                         }
                     }
                     //CHECK INSIDE AREA
                     Some(base_tri) => {
-                        let base_tri_normal: Vector3<f32> =base_tri.1.normal;
+                        let base_tri_normal: Vector3<f32> = base_tri.1.normal;
                         let ray_center_pos = mouse_wpos + mouse_world_ray * mouse_wpos.sub(cp.point_on_tri).magnitude();
                         let (vrtx, vrtx_dist, edge, edge_dist) = find_nearest(ray_center_pos, base_tri.1);
-                        match mc.read().scene_state.get_hull_triangle_by_index(p00.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p00.id as usize, p00.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
+                                pack_id= p00.pack_id;
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p01.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p01.id as usize, p01.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p02.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p02.id as usize, p02.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p10.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p10.id as usize, p10.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p12.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p12.id as usize, p12.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p20.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p20.id as usize, p20.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p21.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p21.id as usize, p21.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
                                 }
                             }
                         }
-                        match mc.read().scene_state.get_hull_triangle_by_index(p22.id as usize) {
+                        match mc.read().scene_state.get_triangle_by_index(p22.id as usize, p22.pack_id as usize) {
                             None => {
                                 //it means we are near for border this pixel are outside of triangle
-                                if (edge_dist < edge_vrtx_dist) {
+                                if edge_dist < edge_vrtx_dist {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
                             }
-                            Some((meshid, loc_tri)) => {
+                            Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
                                 let loc_tri_normal: Vector3<f32> = loc_tri.normal;
                                 let cos_f: f32 = loc_tri_normal.dot(base_tri_normal).abs();
 
                                 //if true angle less 30 degree we should discard result
-                                if (cos_f > 0.86602540378) {} else {
-                                    if (vrtx_dist < snap_vrtx_dist) {
+                                if cos_f > 0.86602540378 {} else {
+                                    if vrtx_dist < snap_vrtx_dist {
                                         snap_vrtx = Some(vrtx);
                                         snap_vrtx_dist = vrtx_dist;
-                                        snap_shader_index = p00.id;
+                                        snap_shader_index = p00.id as i32;
                                     }
-                                    if (edge_dist < edge_vrtx_dist) {
+                                    if edge_dist < edge_vrtx_dist {
                                         edge_vrtx = edge;
                                         edge_vrtx_dist = edge_dist;
                                     }
@@ -586,7 +606,9 @@ impl ScreenCapture {
                 total = total + 1;
             }
         }
-        (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist)
+
+
+        (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id)
     }
 }
 
@@ -601,15 +623,15 @@ fn find_nearest(p: Point3<f32>, tri: Triangle) -> (Point3<f32>, f32, Option<Poin
     let (proj_ab, d_ab, cos_ab) = project_point_to_line(p, a, b);
     let (proj_bc, d_bc, cos_bc) = project_point_to_line(p, b, c);
     let (proj_ca, d_ca, cos_ca) = project_point_to_line(p, c, a);
-    if (cos_ab < 0.0 && d_ab < out_proj_dist) {
+    if cos_ab < 0.0 && d_ab < out_proj_dist {
         out_proj_dist = d_ab;
         out_proj = Some(proj_ab)
     }
-    if (cos_bc < 0.0 && d_bc < out_proj_dist) {
+    if cos_bc < 0.0 && d_bc < out_proj_dist {
         out_proj_dist = d_bc;
         out_proj = Some(proj_bc)
     }
-    if (cos_ca < 0.0 && d_ca < out_proj_dist) {
+    if cos_ca < 0.0 && d_ca < out_proj_dist {
         out_proj_dist = d_ca;
         out_proj = Some(proj_ca)
     }
@@ -620,15 +642,15 @@ fn find_nearest(p: Point3<f32>, tri: Triangle) -> (Point3<f32>, f32, Option<Poin
     let p_a = p.sub(a).magnitude();
     let p_b = p.sub(b).magnitude();
     let p_c = p.sub(c).magnitude();
-    if (p_a < out_vrtx_dist) {
+    if p_a < out_vrtx_dist {
         out_vrtx = a;
         out_vrtx_dist = p_a;
     }
-    if (p_b < out_vrtx_dist) {
+    if p_b < out_vrtx_dist {
         out_vrtx = b;
         out_vrtx_dist = p_b;
     }
-    if (p_c < out_vrtx_dist) {
+    if p_c < out_vrtx_dist {
         out_vrtx = c;
         out_vrtx_dist = p_c;
     }
@@ -653,7 +675,8 @@ fn project_point_to_line(p: Point3<f32>, a: Point3<f32>, b: Point3<f32>) -> (Poi
 
 #[derive(Clone)]
 struct PixelData {
-    id: i32,
+    id: u32,
+    pack_id: u32,
     point_on_tri: Point3<f32>,
 }
 

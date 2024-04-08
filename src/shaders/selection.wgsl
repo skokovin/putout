@@ -73,9 +73,12 @@ struct SnapObject{
 @binding(5) @group(0) var<uniform> snap_object : SnapObject;
 
 struct VertexMetaData {
-     hull:array<i32>
+     ids:array<i32>
 };
-@binding(6) @group(0) var<storage, read> vertex_meta_data : VertexMetaData;
+@binding(6) @group(0) var<storage, read> vertex_meta_data0 : VertexMetaData;
+@binding(7) @group(0) var<storage, read> vertex_meta_data1 : VertexMetaData;
+@binding(8) @group(0) var<storage, read> vertex_meta_data2 : VertexMetaData;
+@binding(9) @group(0) var<storage, read> vertex_meta_data3 : VertexMetaData;
 
 
 
@@ -83,19 +86,35 @@ struct VertexMetaData {
 struct Output {
     @builtin(position) position : vec4<f32>,
     @location(0) originalpos : vec4<f32>,
-    @location(1) @interpolate(flat) oid : i32,
+    @location(1) @interpolate(flat) pack_id : i32,
     @location(2) @interpolate(flat) mat_id: i32,
-
 };
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index : u32,in:VertexInput) -> Output {
-    let hull_meta_data=vertex_meta_data.hull[vertex_index];
+    let raw_id=u32(in.material_index);
+    let pack_id:u32=raw_id%100;
+    let mat_id:u32=(raw_id-pack_id)/100;
+    var hull_meta_data=0;
+    if(pack_id==0){
+       hull_meta_data=vertex_meta_data0.ids[vertex_index];
+
+    }
+    if(pack_id==1){
+       hull_meta_data=vertex_meta_data1.ids[vertex_index];
+    }
+
+    if(pack_id==2){
+       hull_meta_data=vertex_meta_data2.ids[vertex_index];
+    }
+    if(pack_id==3){
+       hull_meta_data=vertex_meta_data3.ids[vertex_index];
+    }
+
     var output: Output;
     output.originalpos= in.position;
     output.mat_id=hull_meta_data;
-    //output.oid=in.id;
-    output.oid=i32(vertex_index);
+    output.pack_id=i32(vertex_index*100)+i32(pack_id);
     output.position = camera.mvp  * in.position;
     return output;
 }
@@ -103,14 +122,17 @@ fn vs_main(@builtin(vertex_index) vertex_index : u32,in:VertexInput) -> Output {
 
 
 @fragment
-fn fs_main(in:Output) ->  @location(0)  vec4<f32>{
+fn fs_main(in:Output) ->   @location(0)  vec4<i32>{
     if(
     in.originalpos.x>slice.x_max || in.originalpos.x<slice.x_min
     || in.originalpos.y>slice.y_max || in.originalpos.y<slice.y_min
     || in.originalpos.z>slice.z_max || in.originalpos.z<slice.z_min
     ) { discard;};
      if(in.mat_id==0){discard;}
-     let out_test=vec4<f32>(in.originalpos.xyz,f32(in.oid));
 
+     //let out_value=i32(in.mat_pack.x*100) + i32(in.mat_pack.y);
+     //let out_value:f32= f32(in.mat_pack.x*100) +f32(10);
+
+     let out_test=vec4<i32>(i32(in.originalpos.x*1000),i32(in.originalpos.y*1000),i32(in.originalpos.z*1000),in.pack_id);
      return out_test;
 }

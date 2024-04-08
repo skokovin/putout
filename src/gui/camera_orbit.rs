@@ -1,13 +1,13 @@
 use std::f32::consts::PI;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Sub};
 use std::rc::Rc;
-use cgmath::{EuclideanSpace, Euler, InnerSpace, Matrix4, MetricSpace, Point3, Quaternion, Rad, Rotation, Rotation3, Transform, Vector3};
+use cgmath::{EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation, Rotation3, Vector3};
 use cgmath::num_traits::abs;
-use log::warn;
+
 use parking_lot::RwLock;
 use truck_base::bounding_box::BoundingBox;
 use crate::gui::camera_base::{SHIP_FORWARD, SHIP_RIGHT, SHIP_UP};
-use crate::shared::CABLE_EDGE_RADIUS;
+
 
 #[derive(Clone)]
 pub struct CameraOrbit {
@@ -48,7 +48,7 @@ impl CameraOrbit {
 
 
     pub fn zoom(&mut self, dx_in: f32, dy_in: f32, d: bool) {
-        let k: f32 = if (d) { 1.0 } else { -1.0 };
+        let k: f32 = if d { 1.0 } else { -1.0 };
         self.pan(dx_in * self.zoom_factor * k, dy_in * self.zoom_factor * k);
         let new_val: Point3<f32> = *self.eye.clone().read() + *self.forward.clone().read() * self.zoom_factor * k;
         self.eye.clone().write().clone_from(&new_val);
@@ -63,14 +63,14 @@ impl CameraOrbit {
 
     pub fn update_mouse(&mut self, dx_in: f32, dy_in: f32) {
         self.yaw += dx_in * self.mouse_sensitivity_horizontal;
-        self.pitch += (dy_in * self.mouse_sensitivity_vertical);
-        if (abs(self.yaw) > PI * 2.0) { self.yaw = 0.0 }
-        if (abs(self.pitch) > PI * 2.0) { self.pitch = 0.0 }
+        self.pitch += dy_in * self.mouse_sensitivity_vertical;
+        if abs(self.yaw) > PI * 2.0 { self.yaw = 0.0 }
+        if abs(self.pitch) > PI * 2.0 { self.pitch = 0.0 }
         self.rotate();
     }
 
     pub fn set_zoom_factor(&mut self, bbx_magnitude: f32) {
-        if (!f32::is_nan(bbx_magnitude) && !f32::is_infinite(bbx_magnitude)) {
+        if !f32::is_nan(bbx_magnitude) && !f32::is_infinite(bbx_magnitude) {
             self.zoom_factor = bbx_magnitude * 0.1;
         }
     }
@@ -89,9 +89,9 @@ impl CameraOrbit {
 
 
     fn rotate(&mut self) {
-        let up: Vector3<f32> = self.up.clone().read().clone();
+        let _up: Vector3<f32> = self.up.clone().read().clone();
         let forward: Vector3<f32> = self.forward.clone().read().clone();
-        let right: Vector3<f32> = self.right.clone().read().clone();
+        let _right: Vector3<f32> = self.right.clone().read().clone();
         let eye: Point3<f32> = self.eye.clone().read().clone();
 
         let new_forward_rot = Quaternion::from_axis_angle(SHIP_UP, Rad(self.yaw)).normalize();

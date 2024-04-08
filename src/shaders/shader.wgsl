@@ -73,9 +73,12 @@ struct SnapObject{
 @binding(5) @group(0) var<uniform> snap_object : SnapObject;
 
 struct VertexMetaData {
-     hull:array<i32>
+     ids:array<i32>
 };
-@binding(6) @group(0) var<storage, read> vertex_meta_data : VertexMetaData;
+@binding(6) @group(0) var<storage, read> vertex_meta_data0 : VertexMetaData;
+@binding(7) @group(0) var<storage, read> vertex_meta_data1 : VertexMetaData;
+@binding(8) @group(0) var<storage, read> vertex_meta_data2 : VertexMetaData;
+@binding(9) @group(0) var<storage, read> vertex_meta_data3 : VertexMetaData;
 
 
 
@@ -90,8 +93,24 @@ struct Output {
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index : u32,in:VertexInput) -> Output {
+    let raw_id=in.material_index;
+    let pack_id:i32=raw_id%100;
+    let mat_id:i32=(raw_id-pack_id)/100;
+    var hull_meta_data=37;
+    if(pack_id==0){
+        hull_meta_data=vertex_meta_data0.ids[vertex_index];
+    }
+    if(pack_id==1){
+        hull_meta_data=vertex_meta_data1.ids[vertex_index];
+    }
+    if(pack_id==2){
+      hull_meta_data=vertex_meta_data2.ids[vertex_index];
 
-    let hull_meta_data=vertex_meta_data.hull[vertex_index];
+    }
+    if(pack_id==3){
+       hull_meta_data=vertex_meta_data3.ids[vertex_index];
+    }
+
 
     var output: Output;
     output.originalpos= in.position;

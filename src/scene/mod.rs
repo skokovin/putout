@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Formatter};
-use cgmath::{Point3, Vector3};
+use cgmath::{Point3};
 
 use truck_base::bounding_box::BoundingBox;
 use crate::shared::Triangle;
@@ -7,6 +7,7 @@ use crate::shared::Triangle;
 pub mod scene_state;
 pub mod mesh_loader;
 pub mod scene_details;
+pub mod gpu_mem;
 
 #[derive(Clone)]
 pub struct RawMesh {
