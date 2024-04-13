@@ -53,6 +53,7 @@ impl ArrayF32State {
 
 pub struct RemoteMeshData{
     pub is_dirty:bool,
+    pub load_level:i32,
     pub decoded_v: Vec<u8>,
     pub decoded_i: Vec<u8>,
     pub decoded_b: Vec<u8>,
@@ -62,6 +63,7 @@ impl RemoteMeshData {
     pub fn new() -> Self {
         Self {
             is_dirty: false,
+            load_level:0,
             decoded_v: vec![],
             decoded_i: vec![],
             decoded_b: vec![],
@@ -70,6 +72,7 @@ impl RemoteMeshData {
     }
     pub fn clean(&mut self){
         self.is_dirty= false;
+        self.load_level=0;
         self.decoded_v= vec![];
         self.decoded_i= vec![];
         self.decoded_b= vec![];

@@ -9,6 +9,7 @@ use crate::remote::HashI32State;
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::{Float32Array, Int32Array};
+use wasm_bindgen_futures::js_sys::Uint8Array;
 
 
 pub static SELECTED_HULL: Lazy<Mutex<HashI32State>> = Lazy::new(|| Mutex::new(HashI32State::new()));
@@ -93,6 +94,15 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(js_namespace = wvservice)]
     pub fn log2();
+
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn get_vertex_array(id:i32)->Uint8Array;
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn get_index_array(id:i32)->Uint8Array;
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn get_bbx_array(id:i32)->Uint8Array;
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn get_types_array(id:i32)->Uint8Array;
 
     #[wasm_bindgen(js_namespace = wvservice)]
     pub fn select_hull_parts_remote(ids: Int32Array);

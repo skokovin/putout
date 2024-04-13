@@ -19,6 +19,10 @@ pub struct SharedBuffers {
     pub metadata_buffer1: Rc<RwLock<Buffer>>,
     pub metadata_buffer2: Rc<RwLock<Buffer>>,
     pub metadata_buffer3: Rc<RwLock<Buffer>>,
+    pub metadata_buffer4: Rc<RwLock<Buffer>>,
+    pub metadata_buffer5: Rc<RwLock<Buffer>>,
+    pub metadata_buffer6: Rc<RwLock<Buffer>>,
+    pub metadata_buffer7: Rc<RwLock<Buffer>>,
 }
 
 impl SharedBuffers {
@@ -84,6 +88,31 @@ impl SharedBuffers {
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
+        let metadata_buffer4: Buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("metadata_buffer Buffer4"),
+            size: 16,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let metadata_buffer5: Buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("metadata_buffer Buffer5"),
+            size: 16,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let metadata_buffer6: Buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("metadata_buffer Buffer6"),
+            size: 16,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let metadata_buffer7: Buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("metadata_buffer Buffer7"),
+            size: 16,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
         Self {
             camera_buffer: Rc::new(RwLock::new(camera_buffer)),
             material_buffer: Rc::new(RwLock::new(material_buffer)),
@@ -95,6 +124,10 @@ impl SharedBuffers {
             metadata_buffer1: Rc::new(RwLock::new(metadata_buffer1)),
             metadata_buffer2: Rc::new(RwLock::new(metadata_buffer2)),
             metadata_buffer3: Rc::new(RwLock::new(metadata_buffer3)),
+            metadata_buffer4: Rc::new(RwLock::new(metadata_buffer4)),
+            metadata_buffer5: Rc::new(RwLock::new(metadata_buffer5)),
+            metadata_buffer6: Rc::new(RwLock::new(metadata_buffer6)),
+            metadata_buffer7: Rc::new(RwLock::new(metadata_buffer7)),
         }
     }
 
@@ -237,4 +270,97 @@ impl SharedBuffers {
         let buff = self.metadata_buffer3.clone();
         q.write_buffer(&buff.write(), 0, bytemuck::cast_slice(h_m_d.as_ref()));
     }
+    pub fn update_metadata4(&mut self, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, h_m_d: &Vec<i32>) {
+        {
+            let buff = self.metadata_buffer4.clone();
+            let new_size: usize = if h_m_d.len() == 0 { 16 } else {
+                let curr_size = (h_m_d.len() * 4) as f32;
+                (((curr_size / 16.0).ceil() + 1.0) * 16.0) as usize
+            };
+            let currsize = buff.read().size();
+            if currsize != new_size as u64 {
+                let d = device.clone();
+                let new_buff: Buffer = d.read().create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("metadata_buffer4"),
+                    size: (new_size) as BufferAddress,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                });
+                self.metadata_buffer4 = Rc::new(RwLock::new(new_buff));
+            }
+        }
+        let q = queue.write();
+        let buff = self.metadata_buffer4.clone();
+        q.write_buffer(&buff.write(), 0, bytemuck::cast_slice(h_m_d.as_ref()));
+    }
+    pub fn update_metadata5(&mut self, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, h_m_d: &Vec<i32>) {
+        {
+            let buff = self.metadata_buffer5.clone();
+            let new_size: usize = if h_m_d.len() == 0 { 16 } else {
+                let curr_size = (h_m_d.len() * 4) as f32;
+                (((curr_size / 16.0).ceil() + 1.0) * 16.0) as usize
+            };
+            let currsize = buff.read().size();
+            if currsize != new_size as u64 {
+                let d = device.clone();
+                let new_buff: Buffer = d.read().create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("metadata_buffer5"),
+                    size: (new_size) as BufferAddress,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                });
+                self.metadata_buffer5 = Rc::new(RwLock::new(new_buff));
+            }
+        }
+        let q = queue.write();
+        let buff = self.metadata_buffer5.clone();
+        q.write_buffer(&buff.write(), 0, bytemuck::cast_slice(h_m_d.as_ref()));
+    }
+    pub fn update_metadata6(&mut self, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, h_m_d: &Vec<i32>) {
+        {
+            let buff = self.metadata_buffer6.clone();
+            let new_size: usize = if h_m_d.len() == 0 { 16 } else {
+                let curr_size = (h_m_d.len() * 4) as f32;
+                (((curr_size / 16.0).ceil() + 1.0) * 16.0) as usize
+            };
+            let currsize = buff.read().size();
+            if currsize != new_size as u64 {
+                let d = device.clone();
+                let new_buff: Buffer = d.read().create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("metadata_buffer6"),
+                    size: (new_size) as BufferAddress,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                });
+                self.metadata_buffer6 = Rc::new(RwLock::new(new_buff));
+            }
+        }
+        let q = queue.write();
+        let buff = self.metadata_buffer6.clone();
+        q.write_buffer(&buff.write(), 0, bytemuck::cast_slice(h_m_d.as_ref()));
+    }
+    pub fn update_metadata7(&mut self, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, h_m_d: &Vec<i32>) {
+        {
+            let buff = self.metadata_buffer7.clone();
+            let new_size: usize = if h_m_d.len() == 0 { 16 } else {
+                let curr_size = (h_m_d.len() * 4) as f32;
+                (((curr_size / 16.0).ceil() + 1.0) * 16.0) as usize
+            };
+            let currsize = buff.read().size();
+            if currsize != new_size as u64 {
+                let d = device.clone();
+                let new_buff: Buffer = d.read().create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("metadata_buffer0"),
+                    size: (new_size) as BufferAddress,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                });
+                self.metadata_buffer7 = Rc::new(RwLock::new(new_buff));
+            }
+        }
+        let q = queue.write();
+        let buff = self.metadata_buffer7.clone();
+        q.write_buffer(&buff.write(), 0, bytemuck::cast_slice(h_m_d.as_ref()));
+    }
+
 }

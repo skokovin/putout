@@ -22,11 +22,13 @@ use crate::gui::camera_base::{CameraMode, FlyActions};
 
 use crate::remote::common_state::{COMMANDS, DIMENSIONING, REMOTE_HULL_MESH, SLICER};
 use crate::remote::{hull_state, RemoteCommand};
-use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array, HIDDEN_HULL, SELECTED_HULL};
+use crate::scene::mesh_loader::read_hull_unpacked_new_format;
 
 use crate::scene::scene_state::SceneState;
 use crate::shared::dimension::{Dimension, DimensionMode};
 use crate::shared::materials_lib::Material;
+use crate::shared::mesh_common::MeshVertex;
 
 
 use crate::shared::shared_buffers::SharedBuffers;
@@ -83,8 +85,7 @@ pub struct MessageController {
     is_state_dirty_delay_counter: i32,
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
-    pub test_load:i32
-
+    pub test_load: i32,
 }
 
 impl MessageController {
@@ -120,7 +121,7 @@ impl MessageController {
             is_state_dirty_delay_counter: DELAY,
             text_layout: text_layout,
             dimension: Dimension::new(),
-            test_load:0
+            test_load: 0,
         }
     }
     pub fn get_sender(&self) -> Sender<SMEvent> {
@@ -237,25 +238,41 @@ impl MessageController {
                         match self.test_load {
                             0 => {
                                 self.scene_state.set_hull_mesh0();
-                                self.test_load=self.test_load+1;
+                                self.test_load = self.test_load + 1;
                             }
                             1 => {
                                 self.scene_state.set_hull_mesh1();
-                                self.test_load=self.test_load+1;
+                                self.test_load = self.test_load + 1;
                             }
                             2 => {
                                 self.scene_state.set_hull_mesh2();
-                                self.test_load=self.test_load+1;
+                                self.test_load = self.test_load + 1;
                             }
                             3 => {
                                 self.scene_state.set_hull_mesh3();
-                                self.test_load=self.test_load+1;
+                                self.test_load = self.test_load + 1;
+                            }
+                            4 => {
+                                self.scene_state.set_hull_mesh4();
+                                self.test_load = self.test_load + 1;
+                            }
+                            5 => {
+                                self.scene_state.set_hull_mesh5();
+                                self.test_load = self.test_load + 1;
+                            }
+                            6 => {
+                                self.scene_state.set_hull_mesh6();
+                                self.test_load = self.test_load + 1;
+                            }
+                            7 => {
+                                self.scene_state.set_hull_mesh7();
+                                self.test_load = self.test_load + 1;
                             }
                             _ => {}
                         }
 
 
-                        info!("FINISH Load Hull by F2{:?}", key);
+                       // info!("FINISH Load Hull by F2{:?}", key);
                     }
                 }
             }
@@ -274,7 +291,8 @@ impl MessageController {
             PhysicalKey::Code(KeyCode::F5) => {
                 match key.state {
                     ElementState::Pressed => {}
-                    ElementState::Released => {}
+                    ElementState::Released => {
+                    }
                 }
             }
 
@@ -527,10 +545,11 @@ impl MessageController {
             Ok(mut hm) => {
                 if hm.is_dirty {
                     self.scene_state.set_hull_mesh_remote(
-                        hm.decoded_v.clone(),
-                        hm.decoded_i.clone(),
-                        hm.decoded_b.clone(),
-                        hm.decoded_t.clone(),
+                        hm.load_level.clone(),
+                        hm.decoded_v.as_slice(),
+                        hm.decoded_i.as_slice(),
+                        hm.decoded_b.as_slice(),
+                        hm.decoded_t.as_slice(),
                     );
                     hm.clean();
                 }
@@ -563,7 +582,6 @@ impl MessageController {
     }
 
     pub fn set_pack_id(&mut self, active_pack_id: u32) {
-
         self.active_pack_id = active_pack_id
     }
     pub fn get_pack_id(&self) -> u32 {

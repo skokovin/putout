@@ -395,6 +395,10 @@ impl DeviceState {
         let is_metadata1_dirty = self.mc.read().scene_state.gpu_mems[1].is_metadata_dirty;
         let is_metadata2_dirty = self.mc.read().scene_state.gpu_mems[2].is_metadata_dirty;
         let is_metadata3_dirty = self.mc.read().scene_state.gpu_mems[3].is_metadata_dirty;
+        let is_metadata4_dirty = self.mc.read().scene_state.gpu_mems[4].is_metadata_dirty;
+        let is_metadata5_dirty = self.mc.read().scene_state.gpu_mems[5].is_metadata_dirty;
+        let is_metadata6_dirty = self.mc.read().scene_state.gpu_mems[6].is_metadata_dirty;
+        let is_metadata7_dirty = self.mc.read().scene_state.gpu_mems[7].is_metadata_dirty;
 
         if is_metadata0_dirty {
             let hmd = &self.mc.read().scene_state.gpu_mems[0].metadata.clone();
@@ -418,6 +422,28 @@ impl DeviceState {
             let hmd = &self.mc.read().scene_state.gpu_mems[3].metadata.clone();
             self.mc.write().shared_buffers.update_metadata3(self.device.clone(), self.queue.clone(), hmd);
             self.mc.write().scene_state.gpu_mems[3].reset_dirty_metadata();
+        }
+
+        if is_metadata4_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[4].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata4(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[4].reset_dirty_metadata();
+        }
+
+        if is_metadata5_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[5].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata5(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[5].reset_dirty_metadata();
+        }
+        if is_metadata6_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[6].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata6(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[6].reset_dirty_metadata();
+        }
+        if is_metadata7_dirty {
+            let hmd = &self.mc.read().scene_state.gpu_mems[7].metadata.clone();
+            self.mc.write().shared_buffers.update_metadata7(self.device.clone(), self.queue.clone(), hmd);
+            self.mc.write().scene_state.gpu_mems[7].reset_dirty_metadata();
         }
 
 

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 
 use std::rc::Rc;
-use cgmath::{Point3};
+use cgmath::{InnerSpace, Point3};
 
 use itertools::Itertools;
 use log::{warn};
@@ -22,7 +22,9 @@ use wgpu::util::DeviceExt;
 use crate::gui::camera_base::{CameraBase, SHIP_FORWARD};
 use crate::gui::slicer::Slicer;
 use crate::remote::hull_state;
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
 use crate::scene::gpu_mem::{GpuMem, unpack_id, unpack_packid};
+use crate::scene::mesh_loader::read_hull_unpacked_new_format;
 use crate::shared::materials_lib::{HIDDEN_HULL_MAT, Material, SELECTION_HULL_MAT};
 use crate::shared::Triangle;
 
@@ -46,6 +48,10 @@ impl SceneState {
         gpu_mems.push(GpuMem::new(device.clone(), 1));
         gpu_mems.push(GpuMem::new(device.clone(), 2));
         gpu_mems.push(GpuMem::new(device.clone(), 3));
+        gpu_mems.push(GpuMem::new(device.clone(), 4));
+        gpu_mems.push(GpuMem::new(device.clone(), 5));
+        gpu_mems.push(GpuMem::new(device.clone(), 6));
+        gpu_mems.push(GpuMem::new(device.clone(), 7));
 
         let snap_vertex_buffer: Buffer = device.clone().read().create_buffer(&wgpu::BufferDescriptor {
             label: Some("Snap Vertex"),
@@ -66,7 +72,139 @@ impl SceneState {
             snap_vertex_buffer: snap_vertex_buffer,
         }
     }
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh0(&mut self) {
+        {
+            let vu = get_vertex_array(0);
+            let iu = get_index_array(0);
+            let bu = get_bbx_array(0);
+            let tu = get_types_array(0);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            let package_id: u32 = 0;
+            warn!("LOADED {} {:?}",package_id, out_bbx.diagonal().magnitude());
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 0");
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh1(&mut self) {
+        {
+            let vu = get_vertex_array(1);
+            let iu = get_index_array(1);
+            let bu = get_bbx_array(1);
+            let tu = get_types_array(1);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 1;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 1");
+    }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh2(&mut self) {
+        {
+            let vu = get_vertex_array(2);
+            let iu = get_index_array(2);
+            let bu = get_bbx_array(2);
+            let tu = get_types_array(2);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 2;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 2");
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh3(&mut self) {
+        {
+            let vu = get_vertex_array(3);
+            let iu = get_index_array(3);
+            let bu = get_bbx_array(3);
+            let tu = get_types_array(3);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 3;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 3");
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh4(&mut self) {
+        {
+            let vu = get_vertex_array(4);
+            let iu = get_index_array(4);
+            let bu = get_bbx_array(4);
+            let tu = get_types_array(4);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 4;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 4");
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh5(&mut self) {
+        {
+            let vu = get_vertex_array(5);
+            let iu = get_index_array(5);
+            let bu = get_bbx_array(5);
+            let tu = get_types_array(5);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 5;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 5");
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh6(&mut self) {
+        {
+            let vu = get_vertex_array(6);
+            let iu = get_index_array(6);
+            let bu = get_bbx_array(6);
+            let tu = get_types_array(6);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 6;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 6");
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn set_hull_mesh7(&mut self) {
+        {
+            let vu = get_vertex_array(7);
+            let iu = get_index_array(7);
+            let bu = get_bbx_array(7);
+            let tu = get_types_array(7);
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
+            warn!("LOADED");
+            let package_id: u32 = 7;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 7");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh0(&mut self) {
         {
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = mesh_loader::read_hull_packed_new_format0();
@@ -76,8 +214,8 @@ impl SceneState {
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
         warn!("UNPACKED 0");
-
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh1(&mut self) {
         {
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = mesh_loader::read_hull_packed_new_format1();
@@ -88,6 +226,7 @@ impl SceneState {
         }
         warn!("UNPACKED 1");
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh2(&mut self) {
         {
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = mesh_loader::read_hull_packed_new_format2();
@@ -98,6 +237,7 @@ impl SceneState {
         }
         warn!("UNPACKED 2");
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh3(&mut self) {
         {
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = mesh_loader::read_hull_packed_new_format3();
@@ -110,10 +250,16 @@ impl SceneState {
     }
 
 
-    pub fn set_hull_mesh_remote(&mut self, decoded_v: Vec<u8>, decoded_i: Vec<u8>, decoded_b: Vec<u8>, decoded_t: Vec<u8>) {
+    pub fn set_hull_mesh_remote(&mut self, load_level: i32, decoded_v: &[u8], decoded_i: &[u8], decoded_b: &[u8], decoded_t: &[u8]) {
         warn!("TRY LOAD HULL FROm REMOTE");
+        let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) =
+            mesh_loader::read_hull_unpacked_new_format_remote(load_level, decoded_v, decoded_i, decoded_b, decoded_t);
+        let package_id: u32 = load_level as u32;
+        self.tot_bbx += &out_bbx;
+        self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx, hull_mesh, bbxs);
+        self.slicer.set_by_bbx(&self.tot_bbx);
     }
-    pub fn screen_oid(&mut self, action: ActionType, id: i32,pack_id:u32) -> bool {
+    pub fn screen_oid(&mut self, action: ActionType, id: i32, pack_id: u32) -> bool {
         let mut is_scene_modified = false;
 
 

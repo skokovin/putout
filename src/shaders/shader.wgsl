@@ -79,6 +79,10 @@ struct VertexMetaData {
 @binding(7) @group(0) var<storage, read> vertex_meta_data1 : VertexMetaData;
 @binding(8) @group(0) var<storage, read> vertex_meta_data2 : VertexMetaData;
 @binding(9) @group(0) var<storage, read> vertex_meta_data3 : VertexMetaData;
+@binding(10) @group(0) var<storage, read> vertex_meta_data4 : VertexMetaData;
+@binding(11) @group(0) var<storage, read> vertex_meta_data5 : VertexMetaData;
+@binding(12) @group(0) var<storage, read> vertex_meta_data6 : VertexMetaData;
+@binding(13) @group(0) var<storage, read> vertex_meta_data7 : VertexMetaData;
 
 
 
@@ -110,6 +114,18 @@ fn vs_main(@builtin(vertex_index) vertex_index : u32,in:VertexInput) -> Output {
     if(pack_id==3){
        hull_meta_data=vertex_meta_data3.ids[vertex_index];
     }
+    if(pack_id==4){
+       hull_meta_data=vertex_meta_data4.ids[vertex_index];
+    }
+    if(pack_id==5){
+        hull_meta_data=vertex_meta_data5.ids[vertex_index];
+   }
+   if(pack_id==6){
+     hull_meta_data=vertex_meta_data6.ids[vertex_index];
+   }
+   if(pack_id==7){
+       hull_meta_data=vertex_meta_data7.ids[vertex_index];
+   }
 
 
     var output: Output;

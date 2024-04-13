@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::mem::size_of;
 use std::rc::Rc;
 use cgmath::Point3;
 use log::warn;
 use parking_lot::RwLock;
 use truck_base::bounding_box::BoundingBox;
+use web_sys::js_sys::Uint8Array;
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::scene::scene_state::SceneState;
@@ -25,7 +27,7 @@ pub struct GpuMem {
     pub is_metadata_dirty: bool,
     pub v_buffer: Buffer,
     pub i_buffer: Buffer,
-    pub is_renderable:bool,
+    pub is_renderable: bool,
 }
 
 impl GpuMem {
@@ -42,6 +44,7 @@ impl GpuMem {
             contents: bytemuck::cast_slice(&indicies),
             usage: wgpu::BufferUsages::INDEX,
         });
+
         let vertexes: Vec<MeshVertex> = vec![];
         let vertex_buffer = device.clone().read().create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(format!("Vertex Mesh Buffer {id}").as_str()),
@@ -60,10 +63,11 @@ impl GpuMem {
             is_metadata_dirty: false,
             v_buffer: vertex_buffer,
             i_buffer: index_buffer,
-            is_renderable:false
+            is_renderable: false,
         }
     }
     pub fn resize_buffers(&mut self) {
+
         self.i_buffer = self.device.read().create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(format!("Index Mesh Buffer {}", self.id).as_str()),
             contents: bytemuck::cast_slice(&self.i),
@@ -74,17 +78,24 @@ impl GpuMem {
             contents: bytemuck::cast_slice(&self.v),
             usage: wgpu::BufferUsages::VERTEX,
         });
-        self.is_renderable=true;
+        self.is_renderable = true;
     }
     pub fn set_data(&mut self, v: Vec<MeshVertex>, i: Vec<i32>, metadata: Vec<i32>, tot_loc_bbx: BoundingBox<Point3<f64>>, mesh_hash: HashMap<i32, (i32, i32, i32)>, loc_bbxs: Vec<BoundingBox<Point3<f64>>>) {
+        warn!("MEMORY SIZE IS {} {}", size_of::<MeshVertex>()*v.len(),  size_of::<i32>()*i.len() );
         self.v = v;
         self.i = i;
         self.metadata = metadata;
-        self.loc_bbxs = loc_bbxs;
+        //self.loc_bbxs = loc_bbxs;
         self.tot_loc_bbx = tot_loc_bbx;
         self.mesh_hash = mesh_hash;
         self.resize_buffers();
         self.is_metadata_dirty = true;
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.i = vec![];
+            self.v = vec![];
+        }
+
     }
 
     pub fn select_by_id(&mut self, oid: i32) -> bool {
@@ -120,7 +131,7 @@ impl GpuMem {
             }
         }
     }
-    pub fn get_triangle_by_vertex_index(&self, vertex_index: usize)->Option<(i32, Triangle)>{
+    pub fn get_triangle_by_vertex_index(&self, vertex_index: usize) -> Option<(i32, Triangle)> {
         match self.v.get(vertex_index) {
             None => { None }
             Some(base_mesh) => {
@@ -178,14 +189,14 @@ impl GpuMem {
             }
         }
     }
-    pub fn get_bbx_by_oid(&self,oid:i32)->Option<BoundingBox<Point3<f64>>>{
+    pub fn get_bbx_by_oid(&self, oid: i32) -> Option<BoundingBox<Point3<f64>>> {
         match self.mesh_hash.get(&oid) {
-            None => {None}
+            None => { None }
             Some(mesh) => {
-                let indx=mesh.2;
+                let indx = mesh.2;
                 match self.loc_bbxs.get(indx as usize) {
-                    None => {None}
-                    Some(bbx) => {Some(bbx.clone())}
+                    None => { None }
+                    Some(bbx) => { Some(bbx.clone()) }
                 }
             }
         }
@@ -197,31 +208,31 @@ impl GpuMem {
         });
         self.is_metadata_dirty = true;
     }
-    fn get_default_material_by_id(&self,id:i32)->i32{
+    fn get_default_material_by_id(&self, id: i32) -> i32 {
         match self.mesh_hash.get(&id) {
-            None => {0}
+            None => { 0 }
             Some(m) => {
-                let start_index=m.1;
-                let mesh_v=self.v[start_index as usize];
+                let start_index = m.1;
+                let mesh_v = self.v[start_index as usize];
                 let default_material = Material::type_to_color(unpack_id(mesh_v.material_index as u32) as i32);
                 default_material
             }
         }
     }
 
-    pub fn reset_dirty_metadata(&mut self){
-        self.is_metadata_dirty=false;
+    pub fn reset_dirty_metadata(&mut self) {
+        self.is_metadata_dirty = false;
     }
-
 }
 
 
-pub fn unpack_id(raw_id:u32)->u32{
-    let pack_id=raw_id%ID_MEM_OFFSET;
-    let id=(raw_id-pack_id)/ID_MEM_OFFSET;
+pub fn unpack_id(raw_id: u32) -> u32 {
+    let pack_id = raw_id % ID_MEM_OFFSET;
+    let id = (raw_id - pack_id) / ID_MEM_OFFSET;
     id
 }
-pub fn unpack_packid(raw_id:u32)->u32{
-    let pack_id=raw_id%ID_MEM_OFFSET;
+
+pub fn unpack_packid(raw_id: u32) -> u32 {
+    let pack_id = raw_id % ID_MEM_OFFSET;
     pack_id
 }

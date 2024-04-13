@@ -7,6 +7,7 @@ use once_cell::sync::Lazy;
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::{Float32Array,Uint8Array};
+use wasm_bindgen_futures::js_sys::ArrayBuffer;
 
 use crate::device::message_controller::SnapMode;
 use crate::remote::{ArrayF32State, CommandState, RemoteCommand, RemoteMeshData};
@@ -49,7 +50,6 @@ pub async unsafe fn wasm_changeSlicer(planes: Float32Array) {
 pub async unsafe fn wasm_movecamtostartpos() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     let _ = console_log::init_with_level(Level::Info);
-
     match COMMANDS.lock() {
         Ok(mut m) => {
             m.values.push_back(RemoteCommand::MoveCameraToStartPos);
@@ -141,5 +141,50 @@ pub async unsafe fn wasm_unpack_hull(arr_v: Uint8Array, arr_i: Uint8Array, arr_b
     true
 }
 
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub async unsafe fn wasm_unpack_hull_with_packs(load_state:i32,arr_v: Uint8Array, arr_i: Uint8Array, arr_b: Uint8Array, arr_t: Uint8Array)-> Uint8Array {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let _ = console_log::init_with_level(Level::Warn);
+    warn!("TRY UNPACK V {}", arr_v.length());
+    let mut handler_v: Vec<u8> = arr_v.to_vec();
+    let decoded_v: Vec<u8> = decompress_to_vec(&handler_v).unwrap();
+    handler_v=vec![];
+    warn!("TRY UNPACK I {}", arr_i.length());
+    let handler_i: Vec<u8> = arr_i.to_vec();
+    let decoded_i: Vec<u8> = decompress_to_vec(&handler_i).unwrap();
+    warn!("TRY UNPACK B {}", arr_b.length());
+    let handler_b: Vec<u8> = arr_b.to_vec();
+    let decoded_b: Vec<u8> = decompress_to_vec(&handler_b).unwrap();
+
+    warn!("TRY UNPACK T {}", arr_t.length());
+    let handler_t: Vec<u8> = arr_t.to_vec();
+    let decoded_t: Vec<u8> = decompress_to_vec(&handler_t).unwrap();
+
+
+
+
+    //(
+        Uint8Array::from(decoded_v.as_slice())
+        //Uint8Array::from(decoded_i.as_slice()),
+        //Uint8Array::from(decoded_b.as_slice()),
+        //Uint8Array::from(decoded_t.as_slice()),
+
+   // )
+}
+
+
+
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub async unsafe fn wasm_unpack(arr: Uint8Array)-> Uint8Array {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let _ = console_log::init_with_level(Level::Warn);
+    warn!("TRY UNPACK {}", arr.length());
+    let mut handler_v: Vec<u8> = arr.to_vec();
+    let decoded_v: Vec<u8> = decompress_to_vec(&handler_v).unwrap();
+    Uint8Array::from(decoded_v.as_slice())
+}
 
 

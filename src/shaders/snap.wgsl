@@ -77,7 +77,10 @@ struct VertexMetaData {
 @binding(7) @group(0) var<storage, read> vertex_meta_data1 : VertexMetaData;
 @binding(8) @group(0) var<storage, read> vertex_meta_data2 : VertexMetaData;
 @binding(9) @group(0) var<storage, read> vertex_meta_data3 : VertexMetaData;
-
+@binding(10) @group(0) var<storage, read> vertex_meta_data4 : VertexMetaData;
+@binding(11) @group(0) var<storage, read> vertex_meta_data5 : VertexMetaData;
+@binding(12) @group(0) var<storage, read> vertex_meta_data6 : VertexMetaData;
+@binding(13) @group(0) var<storage, read> vertex_meta_data7 : VertexMetaData;
 
 struct Output {
     @builtin(position) position : vec4<f32>,
