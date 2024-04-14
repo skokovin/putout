@@ -9,31 +9,25 @@ use cgmath::{Point3};
 use log::{info, warn};
 use nalgebra::Point4;
 use parking_lot::RwLock;
-
 use wgpu::{Device};
-
-
 use winit::dpi::PhysicalPosition;
 use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
-
 use winit::keyboard::{KeyCode, PhysicalKey};
 use crate::device::window_state::WindowState;
 use crate::gui::camera_base::{CameraMode, FlyActions};
-
 use crate::remote::common_state::{COMMANDS, DIMENSIONING, REMOTE_HULL_MESH, SLICER};
 use crate::remote::{hull_state, RemoteCommand};
-use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array, HIDDEN_HULL, SELECTED_HULL};
 use crate::scene::mesh_loader::read_hull_unpacked_new_format;
-
 use crate::scene::scene_state::SceneState;
 use crate::shared::dimension::{Dimension, DimensionMode};
 use crate::shared::materials_lib::Material;
 use crate::shared::mesh_common::MeshVertex;
-
-
 use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
 use crate::shared::Triangle;
+#[cfg(target_arch = "wasm32")]
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
+use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
 
 const DELAY: i32 = 50;
 
@@ -128,6 +122,7 @@ impl MessageController {
         self.sender.clone()
     }
     pub fn on_render(&mut self) {
+       // #[cfg(target_arch = "wasm32")]
         self.check_remote_state();
         self.scene_state.on_render();
         match self.receiver.try_recv() {
@@ -451,6 +446,7 @@ impl MessageController {
             ElementState::Released => {}
         }
     }
+
     fn check_remote_state(&mut self) {
         match SELECTED_HULL.try_lock() {
             Ok(mut s) => {

@@ -17,16 +17,17 @@ use crate::device::message_controller::{ActionType};
 use crate::scene::{mesh_loader, RawMesh};
 use crate::shared::mesh_common::MeshVertex;
 use wgpu::util::DeviceExt;
-
-
 use crate::gui::camera_base::{CameraBase, SHIP_FORWARD};
 use crate::gui::slicer::Slicer;
 use crate::remote::hull_state;
-use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
 use crate::scene::gpu_mem::{GpuMem, unpack_id, unpack_packid};
 use crate::scene::mesh_loader::read_hull_unpacked_new_format;
 use crate::shared::materials_lib::{HIDDEN_HULL_MAT, Material, SELECTION_HULL_MAT};
 use crate::shared::Triangle;
+
+#[cfg(target_arch = "wasm32")]
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
+use crate::remote::hull_state::get_mesh_vertex_by_id;
 
 pub struct SceneState {
     device: Rc<RwLock<Device>>,
@@ -249,6 +250,58 @@ impl SceneState {
         warn!("UNPACKED 3");
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_hull_mesh4(&mut self) {
+        {
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) =
+                mesh_loader::read_hull_packed_new_format4();
+            let package_id: u32 = 4;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 4");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_hull_mesh5(&mut self) {
+        {
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) =
+                mesh_loader::read_hull_packed_new_format5();
+            let package_id: u32 = 5;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 5");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_hull_mesh6(&mut self) {
+        {
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) =
+                mesh_loader::read_hull_packed_new_format6();
+            let package_id: u32 = 6;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 6");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_hull_mesh7(&mut self) {
+        {
+            let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) =
+                mesh_loader::read_hull_packed_new_format7();
+            let package_id: u32 = 7;
+            self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
+            self.tot_bbx += out_bbx;
+            self.slicer.set_by_bbx(&self.tot_bbx);
+        }
+        warn!("UNPACKED 7");
+    }
+
 
     pub fn set_hull_mesh_remote(&mut self, load_level: i32, decoded_v: &[u8], decoded_i: &[u8], decoded_b: &[u8], decoded_t: &[u8]) {
         warn!("TRY LOAD HULL FROm REMOTE");
@@ -259,10 +312,41 @@ impl SceneState {
         self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx, hull_mesh, bbxs);
         self.slicer.set_by_bbx(&self.tot_bbx);
     }
+
+    #[cfg(target_arch = "wasm32")]
     pub fn screen_oid(&mut self, action: ActionType, id: i32, pack_id: u32) -> bool {
         let mut is_scene_modified = false;
-
-
+        if (id != 0) {
+            let bin=get_mesh_vertex_by_id( pack_id as i32,id ).to_vec();
+            let meshes: &[MeshVertex] =bytemuck::cast_slice(bin.as_slice());
+            if(meshes.len()>0){
+                let mesh=meshes[0];
+                match action {
+                    ActionType::Select => {
+                        self.select_by_id(mesh.id, pack_id);
+                        self.refresh_hull_remote_selected();
+                        is_scene_modified
+                    }
+                    ActionType::Hide => {
+                        self.hide_by_id(mesh.id, pack_id);
+                        self.refresh_hull_remote_hidden();
+                        is_scene_modified = true;
+                        is_scene_modified
+                    }
+                    ActionType::Evaluate => {
+                        is_scene_modified
+                    }
+                }
+            }else{
+                is_scene_modified
+            }
+        } else {
+            is_scene_modified
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn screen_oid(&mut self, action: ActionType, id: i32, pack_id: u32) -> bool {
+        let mut is_scene_modified = false;
         if id != 0 {
             match self.gpu_mems[pack_id as usize].v.get(id as usize) {
                 None => {

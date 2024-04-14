@@ -136,7 +136,8 @@ impl ScreenCapture {
                         }
                         bricked.push(bricked_row);
                     }
-                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id) = self.analyze_texels(mc.clone(), bricked);
+                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id) =
+                        self.analyze_texels(mc.clone(), bricked);
                     match snap_vrtx {
                         None => {
                             mc.write().active_point = Point3::new(f32::max_value(), f32::max_value(), f32::max_value());

@@ -9,6 +9,7 @@ use crate::remote::HashI32State;
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::{Float32Array, Int32Array};
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::Uint8Array;
 
 
@@ -113,5 +114,8 @@ extern "C" {
     pub fn dim_set_fist_point(coords: Float32Array);
     #[wasm_bindgen(js_namespace = wvservice)]
     pub fn dim_set_second_point(coords: Float32Array);
+
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn get_mesh_vertex_by_id(pack_id:i32,index:i32)->Uint8Array;
 }
 

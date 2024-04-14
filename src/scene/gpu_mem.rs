@@ -8,6 +8,8 @@ use truck_base::bounding_box::BoundingBox;
 use web_sys::js_sys::Uint8Array;
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
+use crate::device::message_controller::ActionType;
+use crate::remote::hull_state::get_mesh_vertex_by_id;
 use crate::scene::scene_state::SceneState;
 use crate::shared::materials_lib::{HIDDEN_HULL_MAT, Material, SELECTION_HULL_MAT};
 use crate::shared::mesh_common::MeshVertex;
@@ -67,7 +69,6 @@ impl GpuMem {
         }
     }
     pub fn resize_buffers(&mut self) {
-
         self.i_buffer = self.device.read().create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some(format!("Index Mesh Buffer {}", self.id).as_str()),
             contents: bytemuck::cast_slice(&self.i),
@@ -95,7 +96,6 @@ impl GpuMem {
             self.i = vec![];
             self.v = vec![];
         }
-
     }
 
     pub fn select_by_id(&mut self, oid: i32) -> bool {
@@ -131,6 +131,73 @@ impl GpuMem {
             }
         }
     }
+    #[cfg(target_arch = "wasm32")]
+    pub fn get_triangle_by_vertex_index(&self, vertex_index: usize) -> Option<(i32, Triangle)> {
+        let bin = get_mesh_vertex_by_id(self.id as i32, vertex_index as i32).to_vec();
+        let meshes: &[MeshVertex] = bytemuck::cast_slice(bin.as_slice());
+
+        if(meshes.len()>0){
+           let base_mesh=meshes[0];
+           match self.mesh_hash.get(&base_mesh.id) {
+                None => { None }
+                Some(_mesh_object) => {
+                    let local_base_trangle: Triangle = {
+                        match (vertex_index + 1) % 3 {
+                            0 => {
+                                let v0 = &self.get_mesh_by_id(vertex_index);
+                                let v1 = &self.get_mesh_by_id(vertex_index+1);
+                                let v2 = &self.get_mesh_by_id(vertex_index+2);
+                                Triangle::from_coords(
+                                    v0.position[0], v0.position[1], v0.position[2],
+                                    v1.position[0], v1.position[1], v1.position[2],
+                                    v2.position[0], v2.position[1], v2.position[2],
+                                )
+                            }
+                            1 => {
+                                let v0 =&self.get_mesh_by_id(vertex_index-1);
+                                let v1 = &self.get_mesh_by_id(vertex_index);
+                                let v2 =&self.get_mesh_by_id(vertex_index+1);
+                                Triangle::from_coords(
+                                    v0.position[0], v0.position[1], v0.position[2],
+                                    v1.position[0], v1.position[1], v1.position[2],
+                                    v2.position[0], v2.position[1], v2.position[2],
+                                )
+                            }
+                            2 => {
+                                let v0 = &self.v[vertex_index - 2];
+                                let v1 = &self.v[vertex_index - 1];
+                                let v2 = &self.v[vertex_index];
+                                Triangle::from_coords(
+                                    v0.position[0], v0.position[1], v0.position[2],
+                                    v1.position[0], v1.position[1], v1.position[2],
+                                    v2.position[0], v2.position[1], v2.position[2],
+                                )
+                            }
+                            _ => {
+                                warn!("SOMETING GOES WRONG!!");
+                                let v0 = &self.get_mesh_by_id(vertex_index);
+                                let v1 = &self.get_mesh_by_id(vertex_index+1);
+                                let v2 = &self.get_mesh_by_id(vertex_index+2);
+                                Triangle::from_coords(
+                                    v0.position[0], v0.position[1], v0.position[2],
+                                    v1.position[0], v1.position[1], v1.position[2],
+                                    v2.position[0], v2.position[1], v2.position[2],
+                                )
+                            }
+                        }
+                    };
+                    Some((base_mesh.id, local_base_trangle.clone()))
+                }
+            }
+
+        }else{
+            None
+        }
+
+
+
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn get_triangle_by_vertex_index(&self, vertex_index: usize) -> Option<(i32, Triangle)> {
         match self.v.get(vertex_index) {
             None => { None }
@@ -189,6 +256,12 @@ impl GpuMem {
             }
         }
     }
+
+    fn get_mesh_by_id(&self,vertex_index:usize)->MeshVertex{
+        let bin = get_mesh_vertex_by_id(self.id as i32, vertex_index as i32).to_vec();
+        let meshes: &[MeshVertex] = bytemuck::cast_slice(bin.as_slice());
+        meshes[0]
+    }
     pub fn get_bbx_by_oid(&self, oid: i32) -> Option<BoundingBox<Point3<f64>>> {
         match self.mesh_hash.get(&oid) {
             None => { None }
@@ -208,6 +281,25 @@ impl GpuMem {
         });
         self.is_metadata_dirty = true;
     }
+    #[cfg(target_arch = "wasm32")]
+    fn get_default_material_by_id(&self, id: i32) -> i32 {
+        match self.mesh_hash.get(&id) {
+            None => { 0 }
+            Some(m) => {
+                let start_index = m.1;
+                let bin = get_mesh_vertex_by_id(self.id as i32, start_index).to_vec();
+                let meshes: &[MeshVertex] = bytemuck::cast_slice(bin.as_slice());
+                if (meshes.len() > 0) {
+                    let mesh_v = meshes[0];
+                    let default_material = Material::type_to_color(unpack_id(mesh_v.material_index as u32) as i32);
+                    default_material
+                } else {
+                    0
+                }
+            }
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     fn get_default_material_by_id(&self, id: i32) -> i32 {
         match self.mesh_hash.get(&id) {
             None => { 0 }
@@ -219,6 +311,7 @@ impl GpuMem {
             }
         }
     }
+
 
     pub fn reset_dirty_metadata(&mut self) {
         self.is_metadata_dirty = false;

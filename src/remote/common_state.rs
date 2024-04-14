@@ -7,6 +7,7 @@ use once_cell::sync::Lazy;
 use wasm_bindgen::prelude::wasm_bindgen;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::{Float32Array,Uint8Array};
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::ArrayBuffer;
 
 use crate::device::message_controller::SnapMode;
