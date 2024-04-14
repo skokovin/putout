@@ -27,6 +27,7 @@ use crate::shared::Triangle;
 
 #[cfg(target_arch = "wasm32")]
 use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
+#[cfg(target_arch = "wasm32")]
 use crate::remote::hull_state::get_mesh_vertex_by_id;
 
 pub struct SceneState {

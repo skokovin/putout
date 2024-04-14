@@ -33,7 +33,7 @@ truck-modeling = "0.5.1"
 truck-shapeops = "0.3.0"
 #bvh = { version = "0.8.0",features = ["serde"] }
 #triangle = "0.2.0"
-
+smaa = "0.13.0"
 bitflags = "2.5.0"
 log = "0.4.21"
 pollster = "0.3.0"

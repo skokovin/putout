@@ -4,7 +4,8 @@ use std::rc::Rc;
 use cgmath::num_traits::Float;
 use env_logger::{Builder, Target};
 use log::{info, LevelFilter, warn};
-use parking_lot::{RwLock};
+use parking_lot::{RawRwLock, RwLock};
+use parking_lot::lock_api::RwLockWriteGuard;
 
 use wgpu::{Adapter, Device, Features, Instance, Limits, Queue, RequestAdapterOptions};
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -89,6 +90,7 @@ fn main() {
         instance.clone(),
         adapter.clone(),
         device.clone(),
+        queue.clone(),
         None)));
 
 
@@ -107,7 +109,7 @@ fn main() {
     ));
 
 
-    let window_state = _window_state.clone();
+    let window_state: Rc<RwLock<WindowState>> = _window_state.clone();
     let mc: Rc<RwLock<MessageController>> = message_controller.clone();
     event_loop.run(move |_event, elwt| {
         if !window_state.read().is_minimized() {
@@ -204,7 +206,7 @@ fn main() {
                         WindowEvent::Occluded(_) => {}
                         WindowEvent::RedrawRequested => {
                             {
-                                device_state.clone().as_ref().write().render(&window_state);
+                                device_state.clone().as_ref().write().render(_window_state.clone());
                             }
                           
 

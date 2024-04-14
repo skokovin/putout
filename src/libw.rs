@@ -147,6 +147,7 @@ pub async fn runrust() {
         instance.clone(),
         adapter.clone(),
         device.clone(),
+        queue.clone(),
         Some(canvas))));
     let text_layout:  Rc<RwLock<TextLayout>> =Rc::new(RwLock::new(TextLayout::new(device.clone(), queue.clone(), _window_state.read().config.clone())));
     let message_controller: Rc<RwLock<MessageController>> = Rc::new(RwLock::new(MessageController::new(device.clone(), _window_state.clone(),text_layout.clone())));
@@ -239,7 +240,8 @@ pub async fn runrust() {
                         WindowEvent::RedrawRequested => {
 
                             {
-                                device_state.clone().as_ref().write().render(&window_state);
+                                //device_state.clone().as_ref().write().render(&window_state);
+                                device_state.clone().as_ref().write().render(_window_state.clone());
                             }
 
                             if mc.read().is_capture_screen_requested {

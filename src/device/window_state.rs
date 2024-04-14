@@ -1,11 +1,11 @@
 use std::rc::Rc;
 use log::{info};
 use parking_lot::RwLock;
-
+use smaa::{SmaaMode, SmaaTarget};
 
 
 use web_sys::{HtmlCanvasElement};
-use wgpu::{Adapter, Device, Instance, Surface, SurfaceCapabilities, SurfaceConfiguration, TextureFormat};
+use wgpu::{Adapter, Device, Instance, Queue, Surface, SurfaceCapabilities, SurfaceConfiguration, TextureFormat};
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use winit::window::{CursorGrabMode, Window};
@@ -27,10 +27,12 @@ pub struct WindowState {
     pub mesh_pipeline: RwLock<MeshPipeLine>,
     pub highlight_pipeline: RwLock<HighlightPipeLine>,
     pub window_mode: WindowMode,
+    queue: Rc<RwLock<Queue>>,
+    pub smaa_target: Rc<RwLock<SmaaTarget>> ,
 }
 
 impl WindowState {
-    pub fn new(window: Window, instance: Rc<RwLock<Instance>>, adapter: Rc<RwLock<Adapter>>, device: Rc<RwLock<Device>>, canvas: Option<HtmlCanvasElement>) -> Self {
+    pub fn new(window: Window, instance: Rc<RwLock<Instance>>, adapter: Rc<RwLock<Adapter>>, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, canvas: Option<HtmlCanvasElement>) -> Self {
         #[cfg(target_arch = "wasm32")]
             let size: PhysicalSize<u32> = {
             match &canvas {
@@ -48,7 +50,7 @@ impl WindowState {
             let size: PhysicalSize<u32> = window.inner_size();
 
 
-        let surface = unsafe {
+        let surface: Surface = unsafe {
             match wgpu::SurfaceTargetUnsafe::from_window(&window) {
                 Ok(st) => {
                     match instance.clone().write().create_surface_unsafe(st) {
@@ -62,6 +64,8 @@ impl WindowState {
                 Err(e) => { panic!("THERE IS NO SurfaceTargetUnsafe {:?}", e); }
             }
         };
+
+
         let capabilities: SurfaceCapabilities = surface.get_capabilities(&adapter.clone().read());
         let format: TextureFormat = *capabilities.formats.first().expect("No supported texture formats.");
         let config: SurfaceConfiguration = SurfaceConfiguration {
@@ -75,6 +79,15 @@ impl WindowState {
             view_formats: vec![],
         };
         surface.configure(&device.clone().read(), &config);
+        let smaa_target: SmaaTarget = SmaaTarget::new(
+            &device.read(),
+            &queue.read(),
+            size.width,
+            size.height,
+            format,
+            SmaaMode::Smaa1X,
+        );
+
         let mesh_pipeline: RwLock<MeshPipeLine> = RwLock::new(MeshPipeLine::new(device.clone(), format.clone()));
         let highlight_pipeline: RwLock<HighlightPipeLine> = RwLock::new(HighlightPipeLine::new(device.clone(), format.clone()));
         Self {
@@ -85,6 +98,9 @@ impl WindowState {
             mesh_pipeline: mesh_pipeline,
             highlight_pipeline: highlight_pipeline,
             window_mode: WindowMode::CursorVisible,
+            queue: queue,
+            smaa_target:Rc::new(RwLock::new(smaa_target)) ,
+
         }
     }
 
@@ -92,10 +108,14 @@ impl WindowState {
     pub fn resize(&mut self, size: &PhysicalSize<u32>, device: Rc<RwLock<Device>>) {
         self.config.width = size.width;
         self.config.height = size.height;
-        self.surface.configure(&device.clone().read(), &self.config);
+        self.surface.configure(&device.read(), &self.config);
+        self.smaa_target.write().resize(&device.read(), size.width, size.height);
     }
     #[cfg(target_arch = "wasm32")]
-    pub fn resize(&mut self, _size: &PhysicalSize<u32>,  _device: Rc<RwLock<Device>>) {}
+    pub fn resize(&mut self, _size: &PhysicalSize<u32>, _device: Rc<RwLock<Device>>) {
+        //self.smaa_target.write().resize(&device.read(), size.width, size.height);
+    }
+
     pub fn request_redraw(&mut self, device_state: &RwLock<DeviceState>) {
         #[cfg(target_arch = "wasm32")]
         {
@@ -108,35 +128,35 @@ impl WindowState {
                     let ch = canvas.client_height() as u32;
 
 
-     /*               match canvas.get_context("webgpu") {
-                        Ok(ctx2d) => {
-                            match ctx2d {
-                                None => {
-                                    warn!("NO OBJ")
-                                }
-                                Some(obj) => {
-                                   match obj.dyn_into::<web_sys::GpuCanvasContext>() {
-                                       Ok(ctx3d) => {
+                    /*               match canvas.get_context("webgpu") {
+                                       Ok(ctx2d) => {
+                                           match ctx2d {
+                                               None => {
+                                                   warn!("NO OBJ")
+                                               }
+                                               Some(obj) => {
+                                                  match obj.dyn_into::<web_sys::GpuCanvasContext>() {
+                                                      Ok(ctx3d) => {
 
+                                                      }
+                                                      Err(e) => {warn!("NO GpuCanvasContext")}
+                                                  }
+                                               }
+                                           }
+                                           //let ctx2d=c.unwrap().dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap();
+                                           //warn!("HAS CTX")
                                        }
-                                       Err(e) => {warn!("NO GpuCanvasContext")}
+                                       Err(e) => {
+                                           warn!("NO CTX")
+                                       }
                                    }
-                                }
-                            }
-                            //let ctx2d=c.unwrap().dyn_into::<web_sys::CanvasRenderingContext2d>().unwrap();
-                            //warn!("HAS CTX")
-                        }
-                        Err(e) => {
-                            warn!("NO CTX")
-                        }
-                    }
 
-*/
+               */
                     if ctw != cw || cth != ch {
                         self.config.width = cw;
                         self.config.height = ch;
-                        let ds=device_state;
-                        let dev=ds.read().device.clone();
+                        let ds = device_state;
+                        let dev = ds.read().device.clone();
                         self.surface.configure(&dev.read(), &self.config);
                     }
                 }

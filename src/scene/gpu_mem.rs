@@ -9,12 +9,13 @@ use web_sys::js_sys::Uint8Array;
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::device::message_controller::ActionType;
-use crate::remote::hull_state::get_mesh_vertex_by_id;
+
 use crate::scene::scene_state::SceneState;
 use crate::shared::materials_lib::{HIDDEN_HULL_MAT, Material, SELECTION_HULL_MAT};
 use crate::shared::mesh_common::MeshVertex;
 use crate::shared::Triangle;
-
+#[cfg(target_arch = "wasm32")]
+use crate::remote::hull_state::get_mesh_vertex_by_id;
 pub const ID_MEM_OFFSET: u32 = 100;
 
 pub struct GpuMem {
@@ -256,7 +257,7 @@ impl GpuMem {
             }
         }
     }
-
+    #[cfg(target_arch = "wasm32")]
     fn get_mesh_by_id(&self,vertex_index:usize)->MeshVertex{
         let bin = get_mesh_vertex_by_id(self.id as i32, vertex_index as i32).to_vec();
         let meshes: &[MeshVertex] = bytemuck::cast_slice(bin.as_slice());

@@ -83,7 +83,8 @@ impl DeviceState {
     pub fn request_redraw(&self) {}
 
     #[inline]
-    pub fn render(&mut self, _ws: &RwLock<WindowState>) {
+    pub fn render(&mut self, _ws:Rc<RwLock<WindowState>>) {
+
         let ws = _ws.read();
         let scale_factor: f64 = ws.get_scale_factor();
         self.update_shared_buffers(scale_factor);
@@ -114,6 +115,9 @@ impl DeviceState {
                     view_formats: &vec![],
                 });
                 let depth_view: TextureView = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let handl=ws.smaa_target.clone();
+                let mut handl_w =handl.write();
+                let smaa_frame=handl_w.start_frame(&device,&queue,&view);
 
                 let mut encoder: CommandEncoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Render Encoder D"),
@@ -123,7 +127,7 @@ impl DeviceState {
                     let _render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass1"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
+                            view: &smaa_frame,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Clear(BACKGROUND_COLOR),
@@ -149,7 +153,7 @@ impl DeviceState {
                         let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: Some("Render Pass HULL"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &view,
+                                view: &smaa_frame,
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
@@ -181,7 +185,7 @@ impl DeviceState {
                     let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass SNAP"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
+                            view: &smaa_frame,
                             resolve_target: None,
                             ops: wgpu::Operations {
                                 load: wgpu::LoadOp::Load,
@@ -213,7 +217,7 @@ impl DeviceState {
                     let mut pass: RenderPass = encoder.begin_render_pass(&RenderPassDescriptor {
                         label: None,
                         color_attachments: &[Some(RenderPassColorAttachment {
-                            view: &view,
+                            view: &smaa_frame,
                             resolve_target: None,
                             ops: Operations {
                                 load: LoadOp::Load,
@@ -228,6 +232,7 @@ impl DeviceState {
                 }
 
                 queue.submit(iter::once(encoder.finish()));
+                smaa_frame.resolve();
                 out.present();
             }
             Err(e) => { println!("{}", e) }
