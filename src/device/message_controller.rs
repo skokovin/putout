@@ -26,8 +26,9 @@ use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
 use crate::shared::Triangle;
 #[cfg(target_arch = "wasm32")]
-use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array};
-use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array,on_render_wasm};
+
+use crate::remote::hull_state::{HIDDEN_HULL, on_load_to_gpu, SELECTED_HULL};
 
 const DELAY: i32 = 50;
 
@@ -80,6 +81,7 @@ pub struct MessageController {
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
     pub test_load: i32,
+    pub is_wasm_loaded: bool,
 }
 
 impl MessageController {
@@ -116,14 +118,23 @@ impl MessageController {
             text_layout: text_layout,
             dimension: Dimension::new(),
             test_load: 0,
+            is_wasm_loaded: false,
         }
     }
     pub fn get_sender(&self) -> Sender<SMEvent> {
         self.sender.clone()
     }
     pub fn on_render(&mut self) {
-       // #[cfg(target_arch = "wasm32")]
+        #[cfg(target_arch = "wasm32")]
+        on_render_wasm();
+
+        // #[cfg(target_arch = "wasm32")]
         self.check_remote_state();
+        if (!self.is_wasm_loaded) {
+            self.is_wasm_loaded = true;
+        }
+
+
         self.scene_state.on_render();
         match self.receiver.try_recv() {
             Ok(event) => {
@@ -267,7 +278,7 @@ impl MessageController {
                         }
 
 
-                       // info!("FINISH Load Hull by F2{:?}", key);
+                        // info!("FINISH Load Hull by F2{:?}", key);
                     }
                 }
             }
@@ -286,8 +297,7 @@ impl MessageController {
             PhysicalKey::Code(KeyCode::F5) => {
                 match key.state {
                     ElementState::Pressed => {}
-                    ElementState::Released => {
-                    }
+                    ElementState::Released => {}
                 }
             }
 
@@ -508,6 +518,43 @@ impl MessageController {
                                 self.scene_state.select_by_ids(ids);
 
                                 self.scene_state.zoom_to(oid);
+                            }
+                            RemoteCommand::LoadAllToGPU(pack_id) => {
+                                match pack_id {
+                                    0 => {
+                                        self.scene_state.set_hull_mesh0();
+                                        on_load_to_gpu(0);
+                                    }
+                                    1 => {
+                                        self.scene_state.set_hull_mesh1();
+                                        on_load_to_gpu(1);
+                                    }
+                                    2 => {
+                                        self.scene_state.set_hull_mesh2();
+                                        on_load_to_gpu(2);
+                                    }
+                                    3 => {
+                                        self.scene_state.set_hull_mesh3();
+                                        on_load_to_gpu(3);
+                                    }
+                                    4 => {
+                                        self.scene_state.set_hull_mesh4();
+                                        on_load_to_gpu(4);
+                                    }
+                                    5 => {
+                                        self.scene_state.set_hull_mesh5();
+                                        on_load_to_gpu(5);
+                                    }
+                                    6 => {
+                                        self.scene_state.set_hull_mesh6();
+                                        on_load_to_gpu(6);
+                                    }
+                                    7 => {
+                                        self.scene_state.set_hull_mesh7();
+                                        on_load_to_gpu(7);
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
                     }

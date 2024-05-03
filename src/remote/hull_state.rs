@@ -117,5 +117,12 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = wvservice)]
     pub fn get_mesh_vertex_by_id(pack_id:i32,index:i32)->Uint8Array;
+
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn on_load_to_gpu(pack_id:i32);
+
+
+    #[wasm_bindgen(js_namespace = wvservice)]
+    pub fn on_render_wasm();
 }
 

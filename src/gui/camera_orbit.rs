@@ -16,6 +16,7 @@ pub struct CameraOrbit {
     pub up: Rc<RwLock<Vector3<f32>>>,
     pub right: Rc<RwLock<Vector3<f32>>>,
     pub zoom_factor: f32,
+    pub zoom_sensitivity: f32,
     pub dx: f32,
     pub dy: f32,
     yaw: f32,
@@ -33,17 +34,18 @@ impl CameraOrbit {
             up: head_up,
             right: head_right,
             zoom_factor: 50.0,
+            zoom_sensitivity:10.0,
             dx: 0.0,
             dy: 0.0,
             yaw: 0.0,
             pitch: 0.0,
-            mouse_sensitivity_horizontal: 0.001,
-            mouse_sensitivity_vertical: 0.001,
+            mouse_sensitivity_horizontal: 0.01,
+            mouse_sensitivity_vertical: 0.01,
             focus: 700.0,
         }
     }
     pub fn update(&mut self, tot_bbx: &BoundingBox<Point3<f64>>) {
-        self.set_zoom_factor((tot_bbx.diagonal().magnitude() / 20.0) as f32);
+        self.set_zoom_factor((tot_bbx.diagonal().magnitude() / self.zoom_sensitivity as f64) as f32);
     }
 
 

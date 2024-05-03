@@ -7,6 +7,7 @@ pub mod common_state;
 pub enum RemoteCommand {
     MoveCameraToStartPos,
     MoveCameraToOID(i32),
+    LoadAllToGPU(i32),
 }
 
 pub struct CommandState {
