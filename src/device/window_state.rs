@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::rc::Rc;
 use log::{info};
 use parking_lot::RwLock;
@@ -20,7 +21,7 @@ pub enum WindowMode {
 }
 
 pub struct WindowState {
-    window: Window,
+    window: Rc<RwLock<Window>>,
     canvas: Option<HtmlCanvasElement>,
     pub surface: Surface<'static>,
     pub config: SurfaceConfiguration,
@@ -32,7 +33,7 @@ pub struct WindowState {
 }
 
 impl WindowState {
-    pub fn new(window: Window, instance: Rc<RwLock<Instance>>, adapter: Rc<RwLock<Adapter>>, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, canvas: Option<HtmlCanvasElement>) -> Self {
+    pub fn new(window: Rc<RwLock<Window>>, instance: Rc<RwLock<Instance>>, adapter: Rc<RwLock<Adapter>>, device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, canvas: Option<HtmlCanvasElement>) -> Self {
         #[cfg(target_arch = "wasm32")]
             let size: PhysicalSize<u32> = {
             match &canvas {
@@ -47,11 +48,11 @@ impl WindowState {
         };
 
         #[cfg(not(target_arch = "wasm32"))]
-            let size: PhysicalSize<u32> = window.inner_size();
+            let size: PhysicalSize<u32> = window.read().inner_size();
 
 
         let surface: Surface = unsafe {
-            match wgpu::SurfaceTargetUnsafe::from_window(&window) {
+            match wgpu::SurfaceTargetUnsafe::from_window(&window.read().deref()) {
                 Ok(st) => {
                     match instance.clone().write().create_surface_unsafe(st) {
                         Ok(s) => {
@@ -162,20 +163,20 @@ impl WindowState {
                 }
             }
         }
-        self.window.request_redraw();
+        self.window.read().request_redraw();
     }
 
     pub fn get_window_size(&self) -> PhysicalSize<f32> {
         let _scale_factor = 1.0 as f32;
-        let is = self.window.inner_size();
-        let _os = self.window.outer_size();
+        let is = self.window.read().inner_size();
+        let _os = self.window.read().outer_size();
         PhysicalSize::new(is.width as f32, is.height as f32)
     }
     pub fn get_scale_factor(&self) -> f64 {
-        self.window.scale_factor()
+        self.window.read().scale_factor()
     }
     pub fn is_minimized(&self) -> bool {
-        match self.window.is_minimized() {
+        match self.window.read().is_minimized() {
             None => {
                 info!("CANT GET is_minimized");
                 false
@@ -195,14 +196,14 @@ impl WindowState {
     }
 
     fn hide_cursor(&self) {
-        let _ = self.window.set_cursor_grab(CursorGrabMode::Confined);
-        self.window.set_cursor_visible(false);
+        let _ = self.window.read().set_cursor_grab(CursorGrabMode::Confined);
+        self.window.read().set_cursor_visible(false);
     }
     fn unhide_cursor(&self) {
-        let _ = self.window.set_cursor_grab(CursorGrabMode::None);
-        self.window.set_cursor_visible(true);
+        let _ = self.window.read().set_cursor_grab(CursorGrabMode::None);
+        self.window.read().set_cursor_visible(true);
     }
     pub fn set_cursor_position(&self, pos: PhysicalPosition<f32>) {
-        let _ = self.window.set_cursor_position(pos);
+        let _ = self.window.read().set_cursor_position(pos);
     }
 }

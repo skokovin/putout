@@ -26,9 +26,9 @@ use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
 use crate::shared::Triangle;
 #[cfg(target_arch = "wasm32")]
-use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array,on_render_wasm};
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array,on_render_wasm,on_load_to_gpu};
 
-use crate::remote::hull_state::{HIDDEN_HULL, on_load_to_gpu, SELECTED_HULL};
+use crate::remote::hull_state::{HIDDEN_HULL,  SELECTED_HULL};
 
 const DELAY: i32 = 50;
 
@@ -523,34 +523,42 @@ impl MessageController {
                                 match pack_id {
                                     0 => {
                                         self.scene_state.set_hull_mesh0();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(0);
                                     }
                                     1 => {
                                         self.scene_state.set_hull_mesh1();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(1);
                                     }
                                     2 => {
                                         self.scene_state.set_hull_mesh2();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(2);
                                     }
                                     3 => {
                                         self.scene_state.set_hull_mesh3();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(3);
                                     }
                                     4 => {
                                         self.scene_state.set_hull_mesh4();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(4);
                                     }
                                     5 => {
                                         self.scene_state.set_hull_mesh5();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(5);
                                     }
                                     6 => {
                                         self.scene_state.set_hull_mesh6();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(6);
                                     }
                                     7 => {
                                         self.scene_state.set_hull_mesh7();
+                                        #[cfg(target_arch = "wasm32")]
                                         on_load_to_gpu(7);
                                     }
                                     _ => {}

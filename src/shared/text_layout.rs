@@ -1,4 +1,3 @@
-
 use std::rc::Rc;
 use std::sync::Arc;
 use cgmath::num_traits::Float;
@@ -81,26 +80,26 @@ impl TextLayout {
         let width = surface_config.width;
         let height = surface_config.height;
         let mut cache: SwashCache = SwashCache::new();
-        let mut atlas: TextAtlas = TextAtlas::new(&device.read(), &queue.read(), surface_config.format);
+        let mut atlas: TextAtlas = TextAtlas::new(&device.read() , &queue.read(), surface_config.format);
         let mut text_renderer: TextRenderer = TextRenderer::new(&mut atlas, &device.read(), MultisampleState::default(), None);
         let mut font_system: FontSystem = FontSystem::new_with_fonts(FontSource::generate_fonts());
 
         let mut snap_symbol_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(15.0, 16.0));
         snap_symbol_buff.set_size(&mut font_system, 20.0, 200.0);
         snap_symbol_buff.set_text(&mut font_system, "", Attrs::new().family(Family::SansSerif), Shaping::Advanced);
-        snap_symbol_buff.shape_until_scroll(&mut font_system);
+        snap_symbol_buff.shape_until_scroll(&mut font_system, false);
 
 
         let mut snap_value_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(15.0, 15.0));
         snap_value_buff.set_size(&mut font_system, 200.0, 200.0);
         snap_value_buff.set_text(&mut font_system, "BBBBBB", Attrs::new().family(Family::Name("Arial")), Shaping::Basic);
-        snap_value_buff.shape_until_scroll(&mut font_system);
+        snap_value_buff.shape_until_scroll(&mut font_system, false);
 
 
         let mut dim_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(45.0, 45.0));
         dim_buff.set_size(&mut font_system, 200.0, 200.0);
         dim_buff.set_text(&mut font_system, "", Attrs::new().family(Family::Name("Arial")), Shaping::Basic);
-        dim_buff.shape_until_scroll(&mut font_system);
+        dim_buff.shape_until_scroll(&mut font_system, false);
 
 
         text_renderer.prepare(

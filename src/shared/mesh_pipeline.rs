@@ -187,11 +187,13 @@ impl MeshPipeLine {
             vertex: wgpu::VertexState {
                 module: &mesh_shader,
                 entry_point: "vs_main",
+                compilation_options: Default::default(),
                 buffers: &[MeshVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &mesh_shader,
                 entry_point: "fs_main",
+                compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: format,
                     blend: Some(wgpu::BlendState {
@@ -390,11 +392,13 @@ impl MeshPipeLine {
             vertex: wgpu::VertexState {
                 module: &snap_shader,
                 entry_point: "vs_main",
+                compilation_options: Default::default(),
                 buffers: &[SnapVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &snap_shader,
                 entry_point: "fs_main",
+                compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: format,
                     blend: Some(wgpu::BlendState {
@@ -593,11 +597,13 @@ impl MeshPipeLine {
             vertex: wgpu::VertexState {
                 module: &selection_shader,
                 entry_point: "vs_main",
+                compilation_options: Default::default(),
                 buffers: &[MeshVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &selection_shader,
                 entry_point: "fs_main",
+                compilation_options: Default::default(),
                 targets: &[
                     Some(wgpu::ColorTargetState {
                         format: TextureFormat::Rgba32Sint,

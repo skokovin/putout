@@ -7,6 +7,7 @@ use std::rc::Rc;
 use cgmath::{Point3};
 
 use itertools::Itertools;
+use log::{info, warn};
 
 
 use parking_lot::{RwLock};

@@ -175,11 +175,13 @@ impl HighlightPipeLine {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",
+                compilation_options: Default::default(),
                 buffers: &[MeshVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
+                compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: format,
                     blend: Some(wgpu::BlendState {
@@ -233,7 +235,7 @@ impl HighlightPipeLine {
         let s=if size==0 {16}else {size*16};
         let currsize=self.high_light_cab_nodes_buffer.size();
 
-         if currsize!=s as u64 {
+        if currsize!=s as u64 {
             self.high_light_cab_nodes_buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("high_light_cab_nodes Buffer"),
                 size: (s) as BufferAddress,
