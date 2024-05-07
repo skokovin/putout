@@ -83,7 +83,7 @@ impl GpuMem {
         self.is_renderable = true;
     }
     pub fn set_data(&mut self, v: Vec<MeshVertex>, i: Vec<i32>, metadata: Vec<i32>, tot_loc_bbx: BoundingBox<Point3<f64>>, mesh_hash: HashMap<i32, (i32, i32, i32)>, loc_bbxs: Vec<BoundingBox<Point3<f64>>>) {
-        warn!("MEMORY SIZE IS {} {}", size_of::<MeshVertex>()*v.len(),  size_of::<i32>()*i.len() );
+        //warn!("MEMORY SIZE IS {} {}", size_of::<MeshVertex>()*v.len(),  size_of::<i32>()*i.len() );
         self.v = v;
         self.i = i;
         self.metadata = metadata;

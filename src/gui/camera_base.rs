@@ -1,11 +1,12 @@
 use std::ops::Sub;
 use std::rc::Rc;
 use bitflags::bitflags;
-use cgmath::{InnerSpace, Matrix, Matrix4, perspective, Point3, Rad, SquareMatrix, Vector3, Vector4};
+use cgmath::{InnerSpace, Matrix, Matrix4, MetricSpace, perspective, Point3, Rad, SquareMatrix, Vector3, Vector4};
 use cgmath::num_traits::{abs, Float, signum};
+use log::{info, warn};
 use parking_lot::{RwLock};
 use truck_base::bounding_box::BoundingBox;
-use winit::dpi::PhysicalPosition;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{DeviceId, ElementState, MouseButton, MouseScrollDelta, TouchPhase};
 use crate::gui::camera_fly::CameraFly;
 use crate::gui::camera_orbit::CameraOrbit;
@@ -72,6 +73,7 @@ pub struct CameraBase {
     pub screen_w: f32,
     pub screen_h: f32,
     tot_bbx: BoundingBox<Point3<f64>>,
+    frame_pos: PhysicalPosition<f64>,
 }
 
 impl CameraBase {
@@ -109,6 +111,7 @@ impl CameraBase {
             screen_w: 1.0,
             screen_h: 1.0,
             tot_bbx: BoundingBox::default(),
+            frame_pos: PhysicalPosition::new(f64::neg_infinity(), f64::neg_infinity()),
         };
         camera
     }
@@ -153,14 +156,15 @@ impl CameraBase {
         };
         self.view = Matrix4::look_to_rh(*self.eye.clone().read(), *self.head_forward.clone().read(), *self.head_up.clone().read());
         self.proj = perspective(self.fovy, self.aspect, self.near, self.far);
+       // let scale=Matrix4::from_scale(5.0 as f32);
         self.vp_matrix = self.proj * self.view;
+
         self.n_matrix = self.view.transpose();
         if diag.is_normal() {
             self.far = diag as f32;
         }
         self.mouse_screen_to_world();
     }
-
 
 
     fn mouse_screen_to_world(&mut self) {
@@ -180,6 +184,24 @@ impl CameraBase {
         let p = Point3::new(pos.x, pos.y, pos.z);
         self.mouse_wpos = p;
         self.mouse_wray = ray_wor.clone();
+    }
+
+    fn mouse_screen_to_world_by_2d(&self, _x:f32, _y:f32) ->Point3<f32>{
+        let x = (2.0 as f32 * _x as f32) / self.screen_w - 1.0;
+        let y = 1.0 as f32 - (2.0 as f32 * _y as f32) / self.screen_h;
+        let ray_clip = Vector4::new(x, y, -1.0, 1.0);
+        //let _ray_eye = (self.proj.invert().unwrap()) * ray_clip;
+        //let ray_eye = Vector4::new(_ray_eye.x, _ray_eye.y, -1.0, 0.0);
+        //let inv_ray_wor = (self.view.invert().unwrap()) * ray_eye;
+        //let _ray_wor = Vector3::new(inv_ray_wor.x, inv_ray_wor.y, inv_ray_wor.z);
+        //let ray_wor = _ray_wor.normalize();
+        let mut pos = (self.vp_matrix.clone().invert().unwrap()) * ray_clip;
+        pos.w = 1.0 / pos.w;
+        pos.x *= pos.w;
+        pos.y *= pos.w;
+        pos.z *= pos.w;
+        let p: Point3<f32> = Point3::new(pos.x, pos.y, pos.z);
+        p
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {
@@ -272,8 +294,8 @@ impl CameraBase {
                 CameraMode::TOUCH => {}
             };
             self.mouse_pos = pos.clone();
+            //warn!("{:?} {} {}", self.mouse_pos, dx,dy);
             set_is_dirty
-            //info!("{:?} {} {}", self.mouse_pos, dx,dy);
         }
     }
     pub fn on_mouse_btn_click(&mut self, _device_id: DeviceId, state: ElementState, btn: MouseButton) {
@@ -338,15 +360,33 @@ impl CameraBase {
         self.head_right.clone().write().clone_from(&SHIP_RIGHT);
         self.camera_orbit.set_start_pos(focus as f32);
     }
-/*    #[cfg(target_arch = "wasm32")]
-    pub fn get_mouse_pos(&self, scale_factor: f64) -> PhysicalPosition<f64> {
-        let x = self.mouse_pos.clone().x * scale_factor;
-        let y = self.mouse_pos.clone().y * scale_factor;
-        PhysicalPosition::new(x, y)
-    }
-    #[cfg(not(target_arch = "wasm32"))]*/
     pub fn get_mouse_pos(&self, _scale_factor: f64) -> PhysicalPosition<f64> {
         self.mouse_pos.clone()
+    }
+
+    pub fn set_frame_pos1(&mut self) {
+        self.frame_pos = self.mouse_pos.clone();
+
+
+    }
+    pub fn set_frame_pos2(&mut self,window_size: PhysicalSize<f32>,scale_factor:f32) {
+        match self.mode {
+            CameraMode::FLY => {}
+            CameraMode::ORBIT => {
+                let x=self.screen_w.clone();
+                let y=self.screen_h.clone();
+
+                let p0: Point3<f32> =self.mouse_screen_to_world_by_2d(0.0, 0.0);
+                let p1: Point3<f32> =self.mouse_screen_to_world_by_2d(x, y);
+
+                let d:f32=p0.distance(p1);
+                //println!("DIST {:?}  {:?}  {:?}  ",p0,p1,d);
+
+                self.camera_orbit.zoom_by_frame(self.frame_pos.clone(), self.mouse_pos.clone(),window_size,scale_factor,d);
+
+            }
+            CameraMode::TOUCH => {}
+        }
     }
 }
 

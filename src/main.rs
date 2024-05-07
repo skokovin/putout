@@ -13,7 +13,7 @@ use winit::event::{DeviceEvent, DeviceId, Event, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 
 use crate::device::device_state::DeviceState;
-use crate::device::message_controller::{MessageController, SMEvent};
+use crate::device::message_controller::{MessageController};
 use crate::device::window_state::WindowState;
 use crate::gui::camera_base::CameraMode;
 

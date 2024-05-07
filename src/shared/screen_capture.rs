@@ -3,19 +3,15 @@ use std::rc::Rc;
 use std::str::FromStr;
 use cgmath::{InnerSpace, Point3, Vector3};
 use cgmath::num_traits::Float;
-
-
+use log::warn;
 use parking_lot::RwLock;
-use tokio::sync::mpsc::{Receiver, Sender};
-
-
 use wgpu::{Buffer, BufferSlice, BufferView, Device};
 use crate::device::message_controller::{MessageController, SnapMode};
+use crate::remote::common_state::COMMANDS;
+use crate::remote::RemoteCommand;
 use crate::scene::gpu_mem::{unpack_id, unpack_packid};
 
-
 use crate::shared::Triangle;
-
 
 pub struct ScreenCapture {
     window_width: usize,
@@ -25,14 +21,11 @@ pub struct ScreenCapture {
     sel_output_buffer: Rc<RwLock<Buffer>>,
     is_captured: bool,
     is_map_requested: bool,
-    sender: Sender<bool>,
-    receiver: Receiver<bool>,
     counter: u32,
 }
 
 impl ScreenCapture {
     pub fn new(device: Rc<RwLock<Device>>) -> Self {
-        let (tx, rx): (Sender<bool>, Receiver<bool>) = tokio::sync::mpsc::channel(16);
         let sel_output_buffer_desc = wgpu::BufferDescriptor {
             size: (100 * 100 * 4) as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
@@ -48,8 +41,6 @@ impl ScreenCapture {
             sel_output_buffer: Rc::new(RwLock::new(sel_output_buffer)),
             is_captured: false,
             is_map_requested: false,
-            sender: tx,
-            receiver: rx,
             counter: 0,
         }
     }
@@ -60,27 +51,27 @@ impl ScreenCapture {
 // 3. thanks to tokio channels, next render steps just check message from async. it means that it has beenmapped properly
 // 4. read values, unmap buffer, reset all flags
     pub fn refresh(&mut self, mc: Rc<RwLock<MessageController>>) {
-        match self.receiver.try_recv() {
-            Ok(_) => {
-                let mut result: Vec<i32> = vec![];
-                let handler = self.sel_output_buffer.clone();
-                {
-                    let pointer = handler.read();
-                    let buffer_slice: BufferSlice = pointer.slice(..);
-                    let data: BufferView = buffer_slice.get_mapped_range();
-                    result.extend_from_slice(bytemuck::cast_slice(&data));
-                }
-                handler.read().unmap();
-                self.is_captured = false;
-                self.is_map_requested = false;
-                println!("TEXELS_READY WITH SIZE= {} ", result.len());
-                self.raw_image = result;
-                // DO OFFSCREEN ANALISYS
-                self.is_captured = false;
-                self.is_map_requested = false;
+        if (mc.read().is_off_screen_ready) {
+            let mut result: Vec<i32> = vec![];
+            let handler = self.sel_output_buffer.clone();
+            {
+                let pointer = handler.read();
+                let buffer_slice: BufferSlice = pointer.slice(..);
+                let data: BufferView = buffer_slice.get_mapped_range();
+                result.extend_from_slice(bytemuck::cast_slice(&data));
             }
-            Err(_e) => {}
+            handler.read().unmap();
+            self.is_captured = false;
+            self.is_map_requested = false;
+            //println!("TEXELS_READY WITH SIZE= {} ", result.len());
+            self.raw_image = result;
+            // DO OFFSCREEN ANALISYS
+            self.is_captured = false;
+            self.is_map_requested = false;
+            mc.write().is_off_screen_ready = false;
         }
+
+
         let im_w: i32 = self.image_width as i32;
         let im_h = self.window_hight as i32;
         let x: i32 = {
@@ -99,20 +90,21 @@ impl ScreenCapture {
                 my
             }
         };
-        if self.raw_image.len() > 0 && !mc.read().is_capture_screen_requested {
+        if (self.raw_image.len() > 0 && !mc.read().is_capture_screen_requested) {
             if (im_w - x) > 10 && x > 10 && (im_h - y) > 10 && y > 10 {
                 let indx = (im_w * y * 4 + x * 4) as usize;
                 let x0 = self.raw_image[indx];
                 let y0 = self.raw_image[indx + 1];
                 let z0 = self.raw_image[indx + 2];
                 let id0 = self.raw_image[indx + 3].clone();
-
-
-
-                mc.write().active_id = unpack_id(id0 as u32);
-                mc.write().set_pack_id(unpack_packid(id0 as u32));
-                mc.write().active_point = Point3::new(x0 as f32/1000.0, y0 as f32/1000.0, z0 as f32/1000.0);
-                //println!("PACK_ID Fl={} {}", unpack_id(id0 as u32), unpack_packid(id0 as u32));
+                if(x0==0&&y0==0&&z0==0&&id0==0){
+                    mc.write().active_id = 0;
+                    mc.write().active_point = Point3::new(f32::max_value(), f32::max_value(), f32::max_value());
+                }else{
+                    mc.write().active_id = unpack_id(id0 as u32);
+                    mc.write().set_pack_id(unpack_packid(id0 as u32));
+                    mc.write().active_point = Point3::new(x0 as f32 / 1000.0, y0 as f32 / 1000.0, z0 as f32 / 1000.0);
+                }
 
                 //IF SNAP ENABLED
                 if mc.read().snap_mode != SnapMode::Disabled {
@@ -130,13 +122,13 @@ impl ScreenCapture {
                                 PixelData {
                                     id: unpack_id(id0),
                                     pack_id: unpack_packid(id0),
-                                    point_on_tri: Point3::new(x0 as f32 /1000.0, y0 as f32/1000.0, z0 as f32/1000.0),
+                                    point_on_tri: Point3::new(x0 as f32 / 1000.0, y0 as f32 / 1000.0, z0 as f32 / 1000.0),
                                 }
                             );
                         }
                         bricked.push(bricked_row);
                     }
-                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id) =
+                    let (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist, pack_id) =
                         self.analyze_texels(mc.clone(), bricked);
                     match snap_vrtx {
                         None => {
@@ -166,7 +158,8 @@ impl ScreenCapture {
                     }
                 }
             }
-        } else {
+        }
+        else {
             mc.write().active_id = 0;
             mc.write().active_point = Point3::new(f32::max_value(), f32::max_value(), f32::max_value());
             self.raw_image = vec![];
@@ -177,12 +170,15 @@ impl ScreenCapture {
         let handler = self.sel_output_buffer.clone();
         let pointer = handler.read();
         let buffer_slice: BufferSlice = pointer.slice(..);
-        let sender = self.sender.clone();
         buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
             match result {
                 Ok(_) => {
-                    println!("SEND ");
-                    sender.try_send(true);
+                    match COMMANDS.lock() {
+                        Ok(mut m) => {
+                            m.values.push_back(RemoteCommand::OnOffScreenReady());
+                        }
+                        Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                    }
                 }
                 Err(_) => {}
             }
@@ -257,7 +253,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p00.pack_id;
+                                pack_id = p00.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p01.id as usize, p01.pack_id as usize) {
@@ -274,7 +270,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p01.pack_id;
+                                pack_id = p01.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p02.id as usize, p02.pack_id as usize) {
@@ -291,7 +287,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p02.pack_id;
+                                pack_id = p02.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p10.id as usize, p10.pack_id as usize) {
@@ -308,7 +304,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p10.pack_id;
+                                pack_id = p10.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p12.id as usize, p12.pack_id as usize) {
@@ -325,7 +321,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p12.pack_id;
+                                pack_id = p12.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p20.id as usize, p20.pack_id as usize) {
@@ -342,7 +338,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p20.pack_id;
+                                pack_id = p20.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p21.id as usize, p21.pack_id as usize) {
@@ -359,7 +355,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p21.pack_id;
+                                pack_id = p21.pack_id;
                             }
                         }
                         match mc.read().scene_state.get_triangle_by_index(p22.id as usize, p22.pack_id as usize) {
@@ -376,7 +372,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p22.pack_id;
+                                pack_id = p22.pack_id;
                             }
                         }
                     }
@@ -392,7 +388,7 @@ impl ScreenCapture {
                                     edge_vrtx = edge;
                                     edge_vrtx_dist = edge_dist;
                                 }
-                                pack_id= p00.pack_id;
+                                pack_id = p00.pack_id;
                             }
                             Some((_meshid, loc_tri)) => {
                                 //it means we are near for other triangle we need to check normals to disable snap flat parts of face
@@ -609,7 +605,7 @@ impl ScreenCapture {
         }
 
 
-        (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist,pack_id)
+        (snap_shader_index, snap_vrtx, snap_vrtx_dist, edge_vrtx, edge_vrtx_dist, pack_id)
     }
 }
 
@@ -656,7 +652,6 @@ fn find_nearest(p: Point3<f32>, tri: Triangle) -> (Point3<f32>, f32, Option<Poin
         out_vrtx_dist = p_c;
     }
 
-    //println!("{} {}",out_vrtx_dist,out_proj_dist);
     (out_vrtx, out_vrtx_dist, out_proj, out_proj_dist)
 }
 

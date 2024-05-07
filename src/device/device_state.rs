@@ -5,17 +5,13 @@ use std::mem::size_of;
 use std::ops::{Range};
 use std::rc::Rc;
 use cgmath::{Point3};
+use cgmath::num_traits::Float;
 
 use itertools::Itertools;
 use log::{info, warn};
 
 
 use parking_lot::{RwLock};
-
-
-
-
-
 
 
 use wgpu::{Adapter, BindGroup, CommandEncoder, COPY_BYTES_PER_ROW_ALIGNMENT, Device, Extent3d, Features, Instance, LoadOp, Operations, Queue, RenderPass, RenderPassColorAttachment, RenderPassDescriptor, StoreOp, Texture, TextureFormat, TextureView, TextureViewDescriptor};
@@ -62,7 +58,6 @@ pub struct DeviceState {
 }
 
 
-
 impl DeviceState {
     pub fn new(mc: Rc<RwLock<MessageController>>, instance: Rc<RwLock<Instance>>, adapter: Rc<RwLock<Adapter>>,
                device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>) -> Self {
@@ -84,8 +79,7 @@ impl DeviceState {
     pub fn request_redraw(&self) {}
 
     #[inline]
-    pub fn render(&mut self, _ws:Rc<RwLock<WindowState>>) {
-
+    pub fn render(&mut self, _ws: Rc<RwLock<WindowState>>) {
         let ws = _ws.read();
         let scale_factor: f64 = ws.get_scale_factor();
         self.update_shared_buffers(scale_factor);
@@ -116,9 +110,9 @@ impl DeviceState {
                     view_formats: &vec![],
                 });
                 let depth_view: TextureView = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
-                let handl=ws.smaa_target.clone();
-                let mut handl_w =handl.write();
-                let smaa_frame=handl_w.start_frame(&device,&queue,&view);
+                let handl = ws.smaa_target.clone();
+                let mut handl_w = handl.write();
+                let smaa_frame = handl_w.start_frame(&device, &queue, &view);
 
                 let mut encoder: CommandEncoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("Render Encoder D"),
@@ -149,8 +143,8 @@ impl DeviceState {
                 }
 
                 //SCENE_RENDERING
-                mc.scene_state.gpu_mems.iter().for_each(|mem|{
-                    if(mem.is_renderable){
+                mc.scene_state.gpu_mems.iter().for_each(|mem| {
+                    if (mem.is_renderable) {
                         let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: Some("Render Pass HULL"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -180,58 +174,61 @@ impl DeviceState {
                         render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
                     }
                 });
-                //snap rendering
-                {
-                    let bs: BindGroup = pl.bind_snap_group(&device, &mc.shared_buffers);
-                    let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Render Pass SNAP"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &smaa_frame,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &depth_view,
-                            depth_ops: Some(wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: StoreOp::Store,
+
+                if (!mc.is_mouse_btn_active && mc.active_point.x<f32::max_value()) {
+
+                    //snap rendering
+                   {
+                        let bs: BindGroup = pl.bind_snap_group(&device, &mc.shared_buffers);
+                        let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("Render Pass SNAP"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: &smaa_frame,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                                view: &depth_view,
+                                depth_ops: Some(wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: StoreOp::Store,
+                                }),
+                                stencil_ops: None,
                             }),
-                            stencil_ops: None,
-                        }),
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    render_pass.set_pipeline(&pl.snap_render_pipeline);
-                    render_pass.set_bind_group(0, &bs, &[]);
-                    queue.write_buffer(&mc.scene_state.snap_vertex_buffer, 0, bytemuck::cast_slice(&[0.0, 0.0, 0.0, 1.0]));
-                    render_pass.set_vertex_buffer(0, mc.scene_state.snap_vertex_buffer.slice(..));
-                    render_pass.draw(Range { start: 0, end: 6 }, Range { start: 0, end: 1 });
-                }
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+                        render_pass.set_pipeline(&pl.snap_render_pipeline);
+                        render_pass.set_bind_group(0, &bs, &[]);
+                        queue.write_buffer(&mc.scene_state.snap_vertex_buffer, 0, bytemuck::cast_slice(&[0.0, 0.0, 0.0, 1.0]));
+                        render_pass.set_vertex_buffer(0, mc.scene_state.snap_vertex_buffer.slice(..));
+                        render_pass.draw(Range { start: 0, end: 6 }, Range { start: 0, end: 1 });
+                    }
 
-                //text_rendering
-                let text_layput_handler=mc.text_layout.clone();
-                let text_layput =text_layput_handler.write();
-                {
-                    let mut pass: RenderPass = encoder.begin_render_pass(&RenderPassDescriptor {
-                        label: None,
-                        color_attachments: &[Some(RenderPassColorAttachment {
-                            view: &smaa_frame,
-                            resolve_target: None,
-                            ops: Operations {
-                                load: LoadOp::Load,
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    text_layput.text_renderer.render(&text_layput.atlas, &mut pass).unwrap();
+                    //text_rendering
+                    let text_layput_handler = mc.text_layout.clone();
+                    let text_layput = text_layput_handler.write();
+                    {
+                        let mut pass: RenderPass = encoder.begin_render_pass(&RenderPassDescriptor {
+                            label: None,
+                            color_attachments: &[Some(RenderPassColorAttachment {
+                                view: &smaa_frame,
+                                resolve_target: None,
+                                ops: Operations {
+                                    load: LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        });
+                        text_layput.text_renderer.render(&text_layput.atlas, &mut pass).unwrap();
+                    }
                 }
-
                 queue.submit(iter::once(encoder.finish()));
                 smaa_frame.resolve();
                 out.present();
@@ -289,7 +286,7 @@ impl DeviceState {
             let pl = ws.mesh_pipeline.read();
             let bg: BindGroup = pl.bind_mesh_group(&self.device.read(), &mc.shared_buffers);
             let queue = self.queue.read();
-            let mut is_done=false;
+            let mut is_done = false;
 
             {
                 let _render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -316,9 +313,10 @@ impl DeviceState {
             }
 
             //DRAW TO BUFFER
-            mc.scene_state.gpu_mems.iter().for_each(|mem|{
-                if(mem.is_renderable){
-                    {   let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
+            mc.scene_state.gpu_mems.iter().for_each(|mem| {
+                if (mem.is_renderable) {
+                    {
+                        let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
                         let mut sel_render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: Some("Render Pass HULL"),
                             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -346,16 +344,17 @@ impl DeviceState {
                         sel_render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
                         sel_render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
                         sel_render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
-                        is_done=true;
+                        is_done = true;
                     }
                 }
             });
             //Copy Buffer to Host
-            if(is_done){
+            if (is_done) {
                 {
                     let image_width = COPY_BYTES_PER_ROW_ALIGNMENT * (w / COPY_BYTES_PER_ROW_ALIGNMENT);
 
                     let sc = self.screen_capture.get_capture_buffer(self.device.clone(), w as usize, h as usize, image_width as usize);
+
                     sel_encoder.copy_texture_to_buffer(
                         wgpu::ImageCopyTexture {
                             aspect: wgpu::TextureAspect::All,
@@ -382,11 +381,10 @@ impl DeviceState {
                         },
                     );
                     queue.submit(iter::once(sel_encoder.finish()));
-                    println!("IMAGE DONE WIDDT={}", image_width);
+                    //println!("IMAGE DONE WIDDT={}", image_width);
                     self.screen_capture.copy_to_host();
                 }
             }
-
         } else {
             self.screen_capture.refresh(self.mc.clone());
         }
@@ -472,7 +470,7 @@ impl DeviceState {
             let active_point: Point3<f32> = self.mc.read().active_point.clone();
             let dimension: Dimension = self.mc.read().dimension.clone();
             let snap_mode: SnapMode = self.mc.read().snap_mode.clone();
-            self.mc.write().shared_buffers.update_snap(self.queue.clone(), active_point, dimension,snap_mode);
+            self.mc.write().shared_buffers.update_snap(self.queue.clone(), active_point, dimension, snap_mode);
         }
 
 

@@ -83,12 +83,12 @@ impl SceneState {
             let tu = get_types_array(0);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
             let package_id: u32 = 0;
-            warn!("LOADED {} {:?}",package_id, out_bbx.diagonal().magnitude());
+            //warn!("LOADED {} {:?}",package_id, out_bbx.diagonal().magnitude());
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 0");
+        //warn!("UNPACKED 0");
     }
     #[cfg(target_arch = "wasm32")]
     pub fn set_hull_mesh1(&mut self) {
@@ -98,13 +98,13 @@ impl SceneState {
             let bu = get_bbx_array(1);
             let tu = get_types_array(1);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 1;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 1");
+        //warn!("UNPACKED 1");
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -115,13 +115,13 @@ impl SceneState {
             let bu = get_bbx_array(2);
             let tu = get_types_array(2);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 2;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 2");
+        //warn!("UNPACKED 2");
     }
     #[cfg(target_arch = "wasm32")]
     pub fn set_hull_mesh3(&mut self) {
@@ -131,13 +131,13 @@ impl SceneState {
             let bu = get_bbx_array(3);
             let tu = get_types_array(3);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 3;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 3");
+        //warn!("UNPACKED 3");
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -148,13 +148,13 @@ impl SceneState {
             let bu = get_bbx_array(4);
             let tu = get_types_array(4);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 4;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 4");
+        //warn!("UNPACKED 4");
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -165,13 +165,13 @@ impl SceneState {
             let bu = get_bbx_array(5);
             let tu = get_types_array(5);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 5;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 5");
+        //warn!("UNPACKED 5");
     }
     #[cfg(target_arch = "wasm32")]
     pub fn set_hull_mesh6(&mut self) {
@@ -181,13 +181,13 @@ impl SceneState {
             let bu = get_bbx_array(6);
             let tu = get_types_array(6);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+            //warn!("LOADED");
             let package_id: u32 = 6;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 6");
+        //warn!("UNPACKED 6");
     }
     #[cfg(target_arch = "wasm32")]
     pub fn set_hull_mesh7(&mut self) {
@@ -197,13 +197,13 @@ impl SceneState {
             let bu = get_bbx_array(7);
             let tu = get_types_array(7);
             let (hm, i, meta_data, out_bbx, hull_mesh, bbxs) = read_hull_unpacked_new_format(vu.to_vec(), iu.to_vec(), bu.to_vec(), tu.to_vec());
-            warn!("LOADED");
+           // warn!("LOADED");
             let package_id: u32 = 7;
             self.gpu_mems[package_id as usize].set_data(hm, i, meta_data, out_bbx.clone(), hull_mesh, bbxs);
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 7");
+       // warn!("UNPACKED 7");
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -215,7 +215,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 0");
+        //warn!("UNPACKED 0");
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh1(&mut self) {
@@ -226,7 +226,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 1");
+        //warn!("UNPACKED 1");
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh2(&mut self) {
@@ -237,7 +237,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 2");
+        //warn!("UNPACKED 2");
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_hull_mesh3(&mut self) {
@@ -248,7 +248,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 3");
+        //warn!("UNPACKED 3");
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -261,7 +261,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 4");
+       // warn!("UNPACKED 4");
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -274,7 +274,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 5");
+        //warn!("UNPACKED 5");
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -287,7 +287,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 6");
+        //warn!("UNPACKED 6");
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -300,7 +300,7 @@ impl SceneState {
             self.tot_bbx += out_bbx;
             self.slicer.set_by_bbx(&self.tot_bbx);
         }
-        warn!("UNPACKED 7");
+        //warn!("UNPACKED 7");
     }
 
 

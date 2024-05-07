@@ -3,14 +3,15 @@ use std::collections::HashSet;
 
 use std::rc::Rc;
 
-use tokio::sync::mpsc::{Receiver, Sender};
+
 use cgmath::{Point3};
+use cgmath::num_traits::Float;
 
 use log::{info, warn};
 use nalgebra::Point4;
 use parking_lot::RwLock;
 use wgpu::{Device};
-use winit::dpi::PhysicalPosition;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{DeviceId, ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use crate::device::window_state::WindowState;
@@ -26,11 +27,11 @@ use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
 use crate::shared::Triangle;
 #[cfg(target_arch = "wasm32")]
-use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array,on_render_wasm,on_load_to_gpu};
+use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array, get_vertex_array, on_render_wasm, on_load_to_gpu};
 
-use crate::remote::hull_state::{HIDDEN_HULL,  SELECTED_HULL};
+use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
 
-const DELAY: i32 = 50;
+
 
 #[derive(PartialEq, Clone)]
 pub enum SnapMode {
@@ -49,17 +50,10 @@ pub enum ActionType {
     Evaluate,
 }
 
-#[derive(PartialEq)]
-pub enum SMEvent {
-    LoadHull(i32),
-    KeyBoardEvent((DeviceId, KeyEvent, bool)),
-    MouseButtonEvent((DeviceId, ElementState, MouseButton)),
-    SelectedPixels(i32),
-}
+
 
 pub struct MessageController {
-    sender: Sender<SMEvent>,
-    receiver: Receiver<SMEvent>,
+
     device: Rc<RwLock<Device>>,
     window_state: Rc<RwLock<WindowState>>,
     pub shared_buffers: SharedBuffers,
@@ -68,25 +62,27 @@ pub struct MessageController {
     pub is_materials_dirty: bool,
     contrl: bool,
     shift: bool,
+    alt: bool,
     check_counter: i32,
-    pub snap_point: Point4<f32>,
+
     pub snap_mode: SnapMode,
     pub active_id: u32,
     active_pack_id: u32,
     pub active_point: Point3<f32>,
     pub active_triangle: Triangle,
     pub is_capture_screen_requested: bool,
+    pub is_off_screen_ready:bool,
     is_state_dirty: bool,
-    is_state_dirty_delay_counter: i32,
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
     pub test_load: i32,
     pub is_wasm_loaded: bool,
+    pub is_mouse_btn_active:bool,
 }
 
 impl MessageController {
     pub fn new(device: Rc<RwLock<Device>>, window_state: Rc<RwLock<WindowState>>, text_layout: Rc<RwLock<TextLayout>>) -> Self {
-        let (tx, rx): (Sender<SMEvent>, Receiver<SMEvent>) = tokio::sync::mpsc::channel(64);
+
         let scene_state = SceneState::new(device.clone());
         let shared_buffers = SharedBuffers::new(device.clone());
         let active_triangle: Triangle = Triangle::new(
@@ -95,8 +91,6 @@ impl MessageController {
             Point3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
         );
         Self {
-            sender: tx,
-            receiver: rx,
             device: device,
             window_state: window_state,
             shared_buffers: shared_buffers,
@@ -105,27 +99,29 @@ impl MessageController {
             is_materials_dirty: true,
             contrl: false,
             shift: false,
+            alt: false,
             check_counter: 0,
-            snap_point: Point4::new(480.0, 28.0, -90.0, 1.0),
+
             snap_mode: SnapMode::Disabled,
             active_id: 0,
             active_pack_id: 0,
-            active_point: Point3::new(0.0, 0.0, 0.0),
+            active_point: Point3::new(f32::max_value(), f32::max_value(), f32::max_value()),
             active_triangle: active_triangle,
             is_capture_screen_requested: false,
+            is_off_screen_ready: false,
             is_state_dirty: false,
-            is_state_dirty_delay_counter: DELAY,
             text_layout: text_layout,
             dimension: Dimension::new(),
             test_load: 0,
             is_wasm_loaded: false,
+            is_mouse_btn_active:false
         }
     }
-    pub fn get_sender(&self) -> Sender<SMEvent> {
-        self.sender.clone()
-    }
+
+
+
     pub fn on_render(&mut self) {
-        #[cfg(target_arch = "wasm32")]
+              #[cfg(target_arch = "wasm32")]
         on_render_wasm();
 
         // #[cfg(target_arch = "wasm32")]
@@ -136,25 +132,8 @@ impl MessageController {
 
 
         self.scene_state.on_render();
-        match self.receiver.try_recv() {
-            Ok(event) => {
-                match event {
-                    SMEvent::LoadHull(i) => {
-                        warn!("LOAD HULL REQUEST{:?}", i);
-                    }
-                    SMEvent::KeyBoardEvent((d, k, i)) => { self.on_keyboard(d, k, i); }
-                    SMEvent::MouseButtonEvent((device_id, state, button)) => {
-                        self.scene_state.camera.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
-                        self.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
-                    }
-                    SMEvent::SelectedPixels(id) => {
-                        warn!("PIXELS{:?}", id);
-                    }
-                }
-            }
-            Err(_e) => {}
-        }
-        self.check_delay();
+
+
         self.text_layout.write().on_render(
             self.snap_mode.clone(),
             self.active_id as i32,
@@ -211,6 +190,16 @@ impl MessageController {
                     }
                     ElementState::Released => {
                         self.shift = false
+                    }
+                }
+            }
+            PhysicalKey::Code(KeyCode::AltLeft) => {
+                match key.state {
+                    ElementState::Pressed => {
+                        self.alt = true
+                    }
+                    ElementState::Released => {
+                        self.alt = false
                     }
                 }
             }
@@ -406,34 +395,41 @@ impl MessageController {
     fn on_mouse_btn_click(&mut self, _d: DeviceId, state: ElementState, button: MouseButton) {
         match state {
             ElementState::Pressed => {
+                self.is_mouse_btn_active=true;
                 match button {
                     MouseButton::Left => {
-                        //warn!("POINT ID IS  {:?}",self.active_point);
-                        self.snap_point = Point4::new(self.active_point.x, self.active_point.y, self.active_point.z, 1.0);
-                        match self.scene_state.camera.mode {
-                            CameraMode::FLY => {}
-                            CameraMode::ORBIT => {
-                                match self.snap_mode {
-                                    SnapMode::Vertex => {
-                                        self.dimension.set_point(self.active_point, DimensionMode::Line);
-                                    }
-                                    SnapMode::Edge => {}
-                                    SnapMode::Face => {}
-                                    SnapMode::Disabled => {
-                                        if self.contrl {
-                                            let is_scene_modified = self.scene_state.screen_oid(ActionType::Hide, self.active_id as i32, self.active_pack_id);
-                                            if is_scene_modified {
-                                                self.is_state_dirty = is_scene_modified;
+                        match self.alt {
+                            true => {
+                                self.scene_state.camera.set_frame_pos1();
+                            }
+                            false => {
+
+                                match self.scene_state.camera.mode {
+                                    CameraMode::FLY => {}
+                                    CameraMode::ORBIT => {
+                                        match self.snap_mode {
+                                            SnapMode::Vertex => {
+                                                self.dimension.set_point(self.active_point, DimensionMode::Line);
                                             }
-                                        } else {
-                                            let _is_scene_modified = self.scene_state.screen_oid(ActionType::Select, self.active_id as i32, self.active_pack_id);
+                                            SnapMode::Edge => {}
+                                            SnapMode::Face => {}
+                                            SnapMode::Disabled => {
+                                                if self.contrl {
+                                                    let is_scene_modified = self.scene_state.screen_oid(ActionType::Hide, self.active_id as i32, self.active_pack_id);
+                                                    if is_scene_modified {
+                                                        self.is_state_dirty = is_scene_modified;
+                                                    }
+                                                } else {
+                                                    let _is_scene_modified = self.scene_state.screen_oid(ActionType::Select, self.active_id as i32, self.active_pack_id);
+                                                }
+                                            }
+                                            SnapMode::LineDim => {}
+                                            SnapMode::NotSet => {}
                                         }
                                     }
-                                    SnapMode::LineDim => {}
-                                    SnapMode::NotSet => {}
+                                    CameraMode::TOUCH => {}
                                 }
                             }
-                            CameraMode::TOUCH => {}
                         }
                     }
                     MouseButton::Right => {}
@@ -443,6 +439,7 @@ impl MessageController {
                             CameraMode::ORBIT => {
                                 if self.active_id != 0 {
                                     self.scene_state.camera.move_camera_to_pos(self.active_point.clone());
+                                    self.is_state_dirty =true;
                                 }
                             }
                             CameraMode::TOUCH => {}
@@ -453,7 +450,27 @@ impl MessageController {
                     MouseButton::Other(_) => {}
                 }
             }
-            ElementState::Released => {}
+            ElementState::Released => {
+                self.is_mouse_btn_active=false;
+                match button {
+                    MouseButton::Left => {
+                        match self.alt {
+                            true => {
+                                let window_size: PhysicalSize<f32> = self.window_state.read().get_window_size();
+                                let sf = self.window_state.read().get_scale_factor() as f32;
+                                self.scene_state.camera.set_frame_pos2(window_size, sf);
+                                self.is_state_dirty = true;
+                            }
+                            false => {}
+                        }
+                    }
+                    MouseButton::Right => {}
+                    MouseButton::Middle => {}
+                    MouseButton::Back => {}
+                    MouseButton::Forward => {}
+                    MouseButton::Other(_) => {}
+                }
+            }
         }
     }
 
@@ -504,7 +521,13 @@ impl MessageController {
         match COMMANDS.try_lock() {
             Ok(mut s) => {
                 match s.get_first() {
-                    None => {}
+                    None => {
+                        if(self.is_state_dirty && !self.is_mouse_btn_active){
+                            self.is_capture_screen_requested = true;
+                            self.is_state_dirty=false;
+                        }
+
+                    }
                     Some(command) => {
                         match command {
                             RemoteCommand::MoveCameraToStartPos => {
@@ -564,6 +587,22 @@ impl MessageController {
                                     _ => {}
                                 }
                             }
+                            RemoteCommand::OnMouseMove((id, pos)) => {
+                                self.on_mouse_move(id, pos);
+                            }
+                            RemoteCommand::OnMouseWheel((device_id, delta, touch_phase)) => {
+                                self.on_zoom(device_id, delta, touch_phase);
+                            }
+                            RemoteCommand::OnKeyBoard((d, k, i)) => {
+                                self.on_keyboard(d, k, i);
+                            }
+                            RemoteCommand::OnMouseButton((device_id, state, button)) => {
+                                self.scene_state.camera.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
+                                self.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
+                            }
+                            RemoteCommand::OnOffScreenReady() => {
+                                self.is_off_screen_ready=true;
+                            }
                         }
                     }
                 }
@@ -613,23 +652,6 @@ impl MessageController {
     }
     pub fn get_mouse_pos(&self) -> PhysicalPosition<f64> {
         self.scene_state.camera.get_mouse_pos(self.window_state.read().get_scale_factor())
-    }
-    fn check_delay(&mut self) {
-        if self.is_state_dirty {
-            self.is_state_dirty = false;
-            self.is_state_dirty_delay_counter = DELAY;
-            self.is_state_dirty_delay_counter = self.is_state_dirty_delay_counter - 1;
-        }
-
-        if self.is_state_dirty_delay_counter != DELAY {
-            self.is_state_dirty_delay_counter = self.is_state_dirty_delay_counter - 1;
-        }
-
-        if !self.is_state_dirty && self.is_state_dirty_delay_counter < 0 {
-            self.is_state_dirty_delay_counter = DELAY;
-            self.is_capture_screen_requested = true;
-            println!("CAPTURE REQURSTED");
-        }
     }
 
     pub fn set_pack_id(&mut self, active_pack_id: u32) {

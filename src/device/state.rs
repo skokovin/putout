@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use cgmath::num_traits::real::Real;
-use log::info;
+use log::{info, warn};
 use parking_lot::RwLock;
 #[cfg(not(target_arch = "wasm32"))]
 use wgpu::{Adapter, Device, Features, Instance, Limits, Queue, RequestAdapterOptions};
@@ -10,10 +10,13 @@ use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 use crate::device::device_state::DeviceState;
-use crate::device::message_controller::{MessageController, SMEvent};
+use crate::device::message_controller::{MessageController};
 use crate::device::window_state::WindowState;
 use crate::gui::camera_base::CameraMode;
+use crate::remote::common_state::COMMANDS;
+use crate::remote::RemoteCommand;
 use crate::shared::text_layout::TextLayout;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub struct MState {
     window: Option<Rc<RwLock<Window>>>,
@@ -26,6 +29,7 @@ pub struct MState {
     device_state: Option<Rc<RwLock<DeviceState>>>,
     counter: i32,
 }
+
 #[cfg(not(target_arch = "wasm32"))]
 impl MState {
     pub fn new() -> Self {
@@ -126,7 +130,7 @@ impl ApplicationHandler for MState {
         // `unwrap` is fine, the window will always be available when
         // receiving a window event.
         let window = self.window.as_ref().unwrap();
-
+        self.message_controller.as_ref().unwrap().write().on_render();
         match event {
             WindowEvent::ActivationTokenDone { .. } => {}
             WindowEvent::Resized(physical_size) => {
@@ -144,23 +148,22 @@ impl ApplicationHandler for MState {
             WindowEvent::HoveredFileCancelled => {}
             WindowEvent::Focused(_) => {}
             WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-                match self.message_controller.as_ref().unwrap().write().get_sender().try_send(SMEvent::KeyBoardEvent((device_id.clone(), event.clone(), is_synthetic))) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        info!("Cant request KeyboardInput {:?}",e);
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnKeyBoard((device_id, event, is_synthetic)));
                     }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
             WindowEvent::ModifiersChanged(_) => {}
             WindowEvent::Ime(_) => {}
             WindowEvent::CursorMoved { device_id, position } => {
-
-                let state =self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
+                let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
 
                 match state {
                     CameraMode::FLY => {
                         let wsize = self.window_state.as_ref().unwrap().read().get_window_size();
-                        let _sf =  self.window_state.as_ref().unwrap().read().get_scale_factor() as f32;
+                        let _sf = self.window_state.as_ref().unwrap().read().get_scale_factor() as f32;
 
                         if position.x < f64::epsilon() {
                             self.window_state.as_ref().unwrap().write().set_cursor_position(PhysicalPosition::new(wsize.width, position.y as f32));
@@ -180,25 +183,34 @@ impl ApplicationHandler for MState {
                         self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse(device_id.clone(), position.clone());
                     }
                     CameraMode::ORBIT => {
-                        self.message_controller.as_ref().unwrap().write().on_mouse_move(device_id.clone(), position.clone());
+                        match COMMANDS.lock() {
+                            Ok(mut m) => {
+                                m.values.push_back(RemoteCommand::OnMouseMove((device_id, position)));
+                            }
+                            Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                        }
                     }
                     CameraMode::TOUCH => {}
                 }
-
             }
             WindowEvent::CursorEntered { .. } => {}
             WindowEvent::CursorLeft { device_id } => {
                 self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
-                self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
+                    }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                }
             }
             WindowEvent::MouseInput { device_id, state, button } => {
-                match self.message_controller.as_ref().unwrap().write().get_sender().try_send(SMEvent::MouseButtonEvent((device_id.clone(), state.clone(),button.clone()))) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        info!("Cant request KeyboardInput {:?}",e);
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnMouseButton((device_id, state, button)));
                     }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
             WindowEvent::PinchGesture { .. } => {}
@@ -211,7 +223,21 @@ impl ApplicationHandler for MState {
             WindowEvent::ScaleFactorChanged { .. } => {}
             WindowEvent::ThemeChanged(_) => {}
             WindowEvent::Occluded(_) => {}
-            WindowEvent::RedrawRequested => {}
+            WindowEvent::RedrawRequested => {
+                if let Some(window) = self.window.as_ref() {
+                    {
+                        self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
+                    }
+                    if (
+                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested &&
+                            !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
+                    ) {
+                        self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
+                        self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
+                    }
+                    window.read().request_redraw();
+                }
+            }
         }
     }
     fn device_event(&mut self, event_loop: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
@@ -226,17 +252,6 @@ impl ApplicationHandler for MState {
         }
     }
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if let Some(window) = self.window.as_ref() {
-            window.read().request_redraw();
-            {
-                self.message_controller.as_ref().unwrap().write().on_render();
-                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-            }
-            if (self.message_controller.as_ref().unwrap().read().is_capture_screen_requested) {
-                self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
-                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
-            }
-
-        }
+        self.window_state.as_ref().unwrap().write().request_redraw(self.device_state.as_ref().unwrap().as_ref())
     }
 }

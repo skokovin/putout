@@ -9,7 +9,7 @@ use winit::event::{DeviceEvent, Event, TouchPhase, WindowEvent};
 use winit::event_loop::EventLoop;
 
 use crate::device::device_state::DeviceState;
-use crate::device::message_controller::{MessageController, SMEvent};
+use crate::device::message_controller::{MessageController};
 use crate::device::window_state::WindowState;
 
 

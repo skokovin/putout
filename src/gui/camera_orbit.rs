@@ -1,11 +1,12 @@
 use std::f32::consts::PI;
 use std::ops::{Sub};
 use std::rc::Rc;
-use cgmath::{EuclideanSpace, InnerSpace, Point3, Quaternion, Rad, Rotation, Rotation3, Vector3};
+use cgmath::{EuclideanSpace, InnerSpace, MetricSpace, Point2, Point3, Quaternion, Rad, Rotation, Rotation3, Vector2, Vector3};
 use cgmath::num_traits::abs;
 
 use parking_lot::RwLock;
 use truck_base::bounding_box::BoundingBox;
+use winit::dpi::{PhysicalPosition, PhysicalSize};
 use crate::gui::camera_base::{SHIP_FORWARD, SHIP_RIGHT, SHIP_UP};
 
 
@@ -34,7 +35,7 @@ impl CameraOrbit {
             up: head_up,
             right: head_right,
             zoom_factor: 50.0,
-            zoom_sensitivity:10.0,
+            zoom_sensitivity: 10.0,
             dx: 0.0,
             dy: 0.0,
             yaw: 0.0,
@@ -63,6 +64,26 @@ impl CameraOrbit {
         self.eye.clone().write().clone_from(&eye_pan_y);
     }
 
+    pub fn zoom_by_frame(&mut self, p1: PhysicalPosition<f64>, p2: PhysicalPosition<f64>, window_size: PhysicalSize<f32>,sf:f32,diag:f32) {
+
+        let center_screen: Point2<f32> = Point2::new(window_size.width / 2.0, window_size.height / 2.0);
+        let center_screen_dist = Vector2::new(window_size.width, window_size.height).magnitude();
+        let pv1: Point2<f32> = Point2::new(p1.x as f32, p1.y as f32);
+        let pv2: Point2<f32> = Point2::new(p2.x as f32, p2.y as f32);
+        let d: f32 = pv1.distance(pv2);
+        let cp: Point2<f32> = Point2::new(((p1.x + p2.x) / 2.0) as f32, ((p1.y + p2.y) / 2.0) as f32);
+        let dx=cp.x-center_screen.x;
+        let dy=cp.y-center_screen.y;
+        println!("dx {:?} dy {:?} d {:?} D {:?}", dx*sf, dy*sf,diag/(d/center_screen_dist),d/center_screen_dist);
+        self.pan(dx*sf,-dy*sf);
+
+
+        //let new_val: Point3<f32> = *self.eye.clone().read() + *self.forward.clone().read() * center_screen_dist/d* center_screen_dist/d;
+        //let new_val: Point3<f32> = *self.eye.clone().read() * d/center_screen_dist;
+
+        //self.eye.clone().write().clone_from(&new_val);
+    }
+
     pub fn update_mouse(&mut self, dx_in: f32, dy_in: f32) {
         self.yaw += dx_in * self.mouse_sensitivity_horizontal;
         self.pitch += dy_in * self.mouse_sensitivity_vertical;
@@ -86,7 +107,7 @@ impl CameraOrbit {
     pub fn set_start_pos(&mut self, focus: f32) {
         self.yaw = 0.0;
         self.pitch = 0.0;
-        self.focus=focus;
+        self.focus = focus;
     }
 
 
@@ -113,16 +134,16 @@ impl CameraOrbit {
         self.eye.clone().write().clone_from(&new_eye);
     }
 
-    pub fn move_and_look_at(&mut self, new_eye_pos:Point3<f32>, look_at_point:Point3<f32>){
-        let dir_raw=look_at_point.sub(new_eye_pos);
-        let d=dir_raw.magnitude();
+    pub fn move_and_look_at(&mut self, new_eye_pos: Point3<f32>, look_at_point: Point3<f32>) {
+        let dir_raw = look_at_point.sub(new_eye_pos);
+        let d = dir_raw.magnitude();
         self.yaw = 0.0;
         self.pitch = 0.0;
         self.forward.clone().write().clone_from(&SHIP_FORWARD);
         self.right.clone().write().clone_from(&SHIP_RIGHT);
         self.up.clone().write().clone_from(&SHIP_UP);
         self.eye.clone().write().clone_from(&new_eye_pos);
-        self.focus=d;
+        self.focus = d;
     }
 }
 

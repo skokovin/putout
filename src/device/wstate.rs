@@ -14,9 +14,11 @@ use winit::event_loop::ActiveEventLoop;
 use winit::platform::web::WindowExtWebSys;
 use winit::window::{Window, WindowId};
 use crate::device::device_state::DeviceState;
-use crate::device::message_controller::{MessageController, SMEvent};
+use crate::device::message_controller::{MessageController};
 use crate::device::window_state::WindowState;
 use crate::gui::camera_base::CameraMode;
+use crate::remote::common_state::COMMANDS;
+use crate::remote::RemoteCommand;
 use crate::shared::text_layout::TextLayout;
 
 pub struct WState {
@@ -174,8 +176,8 @@ impl ApplicationHandler for WState {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
         // `unwrap` is fine, the window will always be available when
         // receiving a window event.
-        let window = self.window.as_ref().unwrap();
-
+        //let window = self.window.as_ref().unwrap();
+        self.message_controller.as_ref().unwrap().write().on_render();
         match event {
             WindowEvent::ActivationTokenDone { .. } => {}
             WindowEvent::Resized(physical_size) => {
@@ -193,11 +195,11 @@ impl ApplicationHandler for WState {
             WindowEvent::HoveredFileCancelled => {}
             WindowEvent::Focused(_) => {}
             WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-                match self.message_controller.as_ref().unwrap().write().get_sender().try_send(SMEvent::KeyBoardEvent((device_id.clone(), event.clone(), is_synthetic))) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        info!("Cant request KeyboardInput {:?}",e);
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnKeyBoard((device_id, event, is_synthetic)));
                     }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
             WindowEvent::ModifiersChanged(_) => {}
@@ -243,11 +245,11 @@ impl ApplicationHandler for WState {
                 self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
             }
             WindowEvent::MouseInput { device_id, state, button } => {
-                match self.message_controller.as_ref().unwrap().write().get_sender().try_send(SMEvent::MouseButtonEvent((device_id.clone(), state.clone(),button.clone()))) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        info!("Cant request KeyboardInput {:?}",e);
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnMouseButton((device_id,state,button)));
                     }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
             WindowEvent::PinchGesture { .. } => {}
@@ -260,7 +262,21 @@ impl ApplicationHandler for WState {
             WindowEvent::ScaleFactorChanged { .. } => {}
             WindowEvent::ThemeChanged(_) => {}
             WindowEvent::Occluded(_) => {}
-            WindowEvent::RedrawRequested => {}
+            WindowEvent::RedrawRequested => {
+                if let Some(window) = self.window.as_ref() {
+                    {
+                        self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
+                    }
+                    if (
+                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested &&
+                            !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
+                    ) {
+                        self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
+                        self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
+                    }
+                    window.read().request_redraw();
+                }
+            }
         }
     }
     fn device_event(&mut self, event_loop: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
@@ -275,17 +291,6 @@ impl ApplicationHandler for WState {
         }
     }
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if let Some(window) = self.window.as_ref() {
-            window.read().request_redraw();
-            {
-                self.message_controller.as_ref().unwrap().write().on_render();
-                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-            }
-            if (self.message_controller.as_ref().unwrap().read().is_capture_screen_requested) {
-                self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
-                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
-            }
-
-        }
+        self.window_state.as_ref().unwrap().write().request_redraw( self.device_state.as_ref().unwrap().as_ref());
     }
 }

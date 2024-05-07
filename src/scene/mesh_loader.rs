@@ -28,7 +28,72 @@ const HULLDV0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_mesh")).as_slice();
 const HULLDB0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_bbx")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
 const HULLID0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_hash")).as_slice();
+
 #[cfg(not(target_arch = "wasm32"))]
+const HULLDI1: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV1: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB1: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID1: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI2: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV2: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB2: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID2: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI3: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV3: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB3: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID3: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI4: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV4: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB4: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID4: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI5: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV5: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB5: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID5: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI6: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV6: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB6: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID6: &[u8] = &[0; 1];
+
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDI7: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDV7: &[u8] =&[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLDB7: &[u8] = &[0; 1];
+#[cfg(not(target_arch = "wasm32"))]
+const HULLID7: &[u8] = &[0; 1];
+
+
+/*#[cfg(not(target_arch = "wasm32"))]
 const HULLDI1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_ind")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
 const HULLDV1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_mesh")).as_slice();
@@ -92,7 +157,7 @@ const HULLDV7: &[u8] = (include_bytes!("../dmp/hull/nf/7data_mesh")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
 const HULLDB7: &[u8] = (include_bytes!("../dmp/hull/nf/7data_bbx")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
-const HULLID7: &[u8] = (include_bytes!("../dmp/hull/nf/7data_hash")).as_slice();
+const HULLID7: &[u8] = (include_bytes!("../dmp/hull/nf/7data_hash")).as_slice();*/
 
 #[cfg(target_arch = "wasm32")]
 const HULLDI0: &[u8] = &[0; 1];
@@ -489,7 +554,7 @@ pub fn read_hull_packed_new_format7() -> (Vec<MeshVertex>, Vec<i32>, Vec<i32>, B
 
 
 pub fn read_hull_unpacked_new_format(decoded_v: Vec<u8>, decoded_i: Vec<u8>, decoded_b: Vec<u8>, decoded_t: Vec<u8>) -> (Vec<MeshVertex>, Vec<i32>, Vec<i32>, BoundingBox<Point3<f64>>, HashMap<i32, (i32, i32, i32)>, Vec<BoundingBox<Point3<f64>>>) {
-    warn!("start convert");
+    //warn!("start convert");
 
     let meshes_bytes_back: &[MeshVertex] = bytemuck::cast_slice(decoded_v.as_slice());
     let indxes_bytes_back: &[i32] = bytemuck::cast_slice(decoded_i.as_slice());
@@ -572,7 +637,7 @@ pub fn read_hull_unpacked_new_format_remote(load_level:i32,decoded_v: &[u8], dec
     });
 
 
-    warn!("finish convert");
+    //warn!("finish convert");
     (meshes_bytes_back.to_vec(), indxes_bytes_back.to_vec(), meta_data, out_bbx, hull_mesh, bbxes)
 }
 
