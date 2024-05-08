@@ -11,6 +11,7 @@ use wasm_bindgen_futures::js_sys::ArrayBuffer;
 
 use crate::device::message_controller::SnapMode;
 use crate::remote::{ArrayF32State, CommandState, RemoteCommand, RemoteMeshData};
+use crate::remote::RemoteCommand::SwitchToGameMode;
 
 
 pub static REMOTE_HULL_MESH: Lazy<Mutex<RemoteMeshData>> = Lazy::new(|| Mutex::new(RemoteMeshData::new()));
@@ -217,6 +218,17 @@ pub fn load_pack_to_gpu(pack_id: i32) {
             }
 
             //1904245 17193573
+        }
+        Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn switch_to_game_mode(){
+    match COMMANDS.lock() {
+        Ok(mut m) => {
+            m.values.push_back(RemoteCommand::SwitchToGameMode());
         }
         Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
     }

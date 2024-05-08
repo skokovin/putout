@@ -32,7 +32,6 @@ use crate::remote::hull_state::{get_bbx_array, get_index_array, get_types_array,
 use crate::remote::hull_state::{HIDDEN_HULL, SELECTED_HULL};
 
 
-
 #[derive(PartialEq, Clone)]
 pub enum SnapMode {
     Vertex = 0,
@@ -51,9 +50,7 @@ pub enum ActionType {
 }
 
 
-
 pub struct MessageController {
-
     device: Rc<RwLock<Device>>,
     window_state: Rc<RwLock<WindowState>>,
     pub shared_buffers: SharedBuffers,
@@ -71,18 +68,17 @@ pub struct MessageController {
     pub active_point: Point3<f32>,
     pub active_triangle: Triangle,
     pub is_capture_screen_requested: bool,
-    pub is_off_screen_ready:bool,
+    pub is_off_screen_ready: bool,
     is_state_dirty: bool,
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
     pub test_load: i32,
     pub is_wasm_loaded: bool,
-    pub is_mouse_btn_active:bool,
+    pub is_mouse_btn_active: bool,
 }
 
 impl MessageController {
     pub fn new(device: Rc<RwLock<Device>>, window_state: Rc<RwLock<WindowState>>, text_layout: Rc<RwLock<TextLayout>>) -> Self {
-
         let scene_state = SceneState::new(device.clone());
         let shared_buffers = SharedBuffers::new(device.clone());
         let active_triangle: Triangle = Triangle::new(
@@ -114,14 +110,13 @@ impl MessageController {
             dimension: Dimension::new(),
             test_load: 0,
             is_wasm_loaded: false,
-            is_mouse_btn_active:false
+            is_mouse_btn_active: false,
         }
     }
 
 
-
     pub fn on_render(&mut self) {
-              #[cfg(target_arch = "wasm32")]
+        #[cfg(target_arch = "wasm32")]
         on_render_wasm();
 
         // #[cfg(target_arch = "wasm32")]
@@ -149,6 +144,7 @@ impl MessageController {
             self.is_state_dirty = is_dirty_from_mouse;
         }
     }
+
     pub fn on_zoom(&mut self, device_id: DeviceId, delta: MouseScrollDelta, touch_phase: TouchPhase) {
         let is_dirty_from_mouse = self.scene_state.camera.on_zoom(device_id, delta, touch_phase);
         if is_dirty_from_mouse {
@@ -278,6 +274,7 @@ impl MessageController {
                         info!("CHange Mode{:?}", key);
                         self.window_state.clone().write().change_cursor_mode();
                         self.scene_state.camera.change_mode();
+                        self.is_state_dirty=true;
                         info!("FINISH CHange Mode{:?}", key);
                     }
                 }
@@ -395,7 +392,7 @@ impl MessageController {
     fn on_mouse_btn_click(&mut self, _d: DeviceId, state: ElementState, button: MouseButton) {
         match state {
             ElementState::Pressed => {
-                self.is_mouse_btn_active=true;
+                self.is_mouse_btn_active = true;
                 match button {
                     MouseButton::Left => {
                         match self.alt {
@@ -403,7 +400,6 @@ impl MessageController {
                                 self.scene_state.camera.set_frame_pos1();
                             }
                             false => {
-
                                 match self.scene_state.camera.mode {
                                     CameraMode::FLY => {}
                                     CameraMode::ORBIT => {
@@ -439,7 +435,7 @@ impl MessageController {
                             CameraMode::ORBIT => {
                                 if self.active_id != 0 {
                                     self.scene_state.camera.move_camera_to_pos(self.active_point.clone());
-                                    self.is_state_dirty =true;
+                                    self.is_state_dirty = true;
                                 }
                             }
                             CameraMode::TOUCH => {}
@@ -451,7 +447,7 @@ impl MessageController {
                 }
             }
             ElementState::Released => {
-                self.is_mouse_btn_active=false;
+                self.is_mouse_btn_active = false;
                 match button {
                     MouseButton::Left => {
                         match self.alt {
@@ -522,11 +518,10 @@ impl MessageController {
             Ok(mut s) => {
                 match s.get_first() {
                     None => {
-                        if(self.is_state_dirty && !self.is_mouse_btn_active){
+                        if (self.is_state_dirty && !self.is_mouse_btn_active) {
                             self.is_capture_screen_requested = true;
-                            self.is_state_dirty=false;
+                            self.is_state_dirty = false;
                         }
-
                     }
                     Some(command) => {
                         match command {
@@ -590,6 +585,7 @@ impl MessageController {
                             RemoteCommand::OnMouseMove((id, pos)) => {
                                 self.on_mouse_move(id, pos);
                             }
+
                             RemoteCommand::OnMouseWheel((device_id, delta, touch_phase)) => {
                                 self.on_zoom(device_id, delta, touch_phase);
                             }
@@ -601,7 +597,14 @@ impl MessageController {
                                 self.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
                             }
                             RemoteCommand::OnOffScreenReady() => {
-                                self.is_off_screen_ready=true;
+                                self.is_off_screen_ready = true;
+                            }
+                            RemoteCommand::SwitchToGameMode() => {
+                                if(self.scene_state.camera.mode!= CameraMode::FLY){
+                                    self.window_state.clone().write().change_cursor_mode();
+                                    self.scene_state.camera.change_mode();
+                                    self.is_state_dirty=true;
+                                }
                             }
                         }
                     }

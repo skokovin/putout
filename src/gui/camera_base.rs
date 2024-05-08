@@ -156,7 +156,7 @@ impl CameraBase {
         };
         self.view = Matrix4::look_to_rh(*self.eye.clone().read(), *self.head_forward.clone().read(), *self.head_up.clone().read());
         self.proj = perspective(self.fovy, self.aspect, self.near, self.far);
-       // let scale=Matrix4::from_scale(5.0 as f32);
+        // let scale=Matrix4::from_scale(5.0 as f32);
         self.vp_matrix = self.proj * self.view;
 
         self.n_matrix = self.view.transpose();
@@ -186,7 +186,7 @@ impl CameraBase {
         self.mouse_wray = ray_wor.clone();
     }
 
-    fn mouse_screen_to_world_by_2d(&self, _x:f32, _y:f32) ->Point3<f32>{
+    fn mouse_screen_to_world_by_2d(&self, _x: f32, _y: f32) -> Point3<f32> {
         let x = (2.0 as f32 * _x as f32) / self.screen_w - 1.0;
         let y = 1.0 as f32 - (2.0 as f32 * _y as f32) / self.screen_h;
         let ray_clip = Vector4::new(x, y, -1.0, 1.0);
@@ -221,7 +221,7 @@ impl CameraBase {
         match self.mode {
             CameraMode::FLY => { self.mode = CameraMode::ORBIT }
             CameraMode::ORBIT => { self.mode = CameraMode::FLY; }
-            CameraMode::TOUCH => { self.mode = CameraMode::TOUCH }
+            CameraMode::TOUCH => {  }
         }
     }
 
@@ -298,6 +298,16 @@ impl CameraBase {
             set_is_dirty
         }
     }
+
+    pub fn on_mouse_dx_dy(&mut self, _device_id: DeviceId, dx: f64, dy: f64) {
+        match self.mode {
+            CameraMode::FLY => {
+                self.camera_fly.update_mouse(-dx as f32, dy as f32);
+            }
+            CameraMode::ORBIT => {}
+            CameraMode::TOUCH => {}
+        };
+    }
     pub fn on_mouse_btn_click(&mut self, _device_id: DeviceId, state: ElementState, btn: MouseButton) {
         match state {
             ElementState::Pressed => {
@@ -366,24 +376,21 @@ impl CameraBase {
 
     pub fn set_frame_pos1(&mut self) {
         self.frame_pos = self.mouse_pos.clone();
-
-
     }
-    pub fn set_frame_pos2(&mut self,window_size: PhysicalSize<f32>,scale_factor:f32) {
+    pub fn set_frame_pos2(&mut self, window_size: PhysicalSize<f32>, scale_factor: f32) {
         match self.mode {
             CameraMode::FLY => {}
             CameraMode::ORBIT => {
-                let x=self.screen_w.clone();
-                let y=self.screen_h.clone();
+                let x = self.screen_w.clone();
+                let y = self.screen_h.clone();
 
-                let p0: Point3<f32> =self.mouse_screen_to_world_by_2d(0.0, 0.0);
-                let p1: Point3<f32> =self.mouse_screen_to_world_by_2d(x, y);
+                let p0: Point3<f32> = self.mouse_screen_to_world_by_2d(0.0, 0.0);
+                let p1: Point3<f32> = self.mouse_screen_to_world_by_2d(x, y);
 
-                let d:f32=p0.distance(p1);
+                let d: f32 = p0.distance(p1);
                 //println!("DIST {:?}  {:?}  {:?}  ",p0,p1,d);
 
-                self.camera_orbit.zoom_by_frame(self.frame_pos.clone(), self.mouse_pos.clone(),window_size,scale_factor,d);
-
+                self.camera_orbit.zoom_by_frame(self.frame_pos.clone(), self.mouse_pos.clone(), window_size, scale_factor, d);
             }
             CameraMode::TOUCH => {}
         }

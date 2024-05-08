@@ -19,6 +19,7 @@ use winit::dpi::PhysicalSize;
 
 use crate::device::message_controller::{MessageController, SnapMode};
 use crate::device::window_state::WindowState;
+use crate::gui::camera_base::CameraMode;
 use crate::shared::dimension::Dimension;
 
 use crate::shared::screen_capture::ScreenCapture;
@@ -175,7 +176,7 @@ impl DeviceState {
                     }
                 });
 
-                if (!mc.is_mouse_btn_active && mc.active_point.x<f32::max_value()) {
+                if (!mc.is_mouse_btn_active && mc.active_point.x<f32::max_value() && mc.scene_state.camera.mode==CameraMode::ORBIT) {
 
                     //snap rendering
                    {

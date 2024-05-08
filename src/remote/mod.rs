@@ -11,6 +11,7 @@ pub enum RemoteCommand {
     MoveCameraToStartPos,
     MoveCameraToOID(i32),
     LoadAllToGPU(i32),
+    SwitchToGameMode(),
 
     OnMouseMove((DeviceId, PhysicalPosition<f64>)),
     OnMouseWheel(( DeviceId,  MouseScrollDelta, TouchPhase)),

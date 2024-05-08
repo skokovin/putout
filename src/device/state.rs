@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::TryLockResult;
 use cgmath::num_traits::real::Real;
 use log::{info, warn};
 use parking_lot::RwLock;
@@ -161,27 +162,7 @@ impl ApplicationHandler for MState {
                 let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
 
                 match state {
-                    CameraMode::FLY => {
-                        let wsize = self.window_state.as_ref().unwrap().read().get_window_size();
-                        let _sf = self.window_state.as_ref().unwrap().read().get_scale_factor() as f32;
-
-                        if position.x < f64::epsilon() {
-                            self.window_state.as_ref().unwrap().write().set_cursor_position(PhysicalPosition::new(wsize.width, position.y as f32));
-                            self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
-                        } else if (wsize.width as f32 - position.x as f32 - 1.0) < f32::epsilon() {
-                            self.window_state.as_ref().unwrap().write().set_cursor_position(PhysicalPosition::new(0.0, position.y as f32));
-                            self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
-                        }
-
-                        if position.y < f64::epsilon() {
-                            self.window_state.as_ref().unwrap().write().set_cursor_position(PhysicalPosition::new(position.x as f32, wsize.height));
-                            self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
-                        } else if (wsize.height as f32 - position.y as f32 - 1.0) < f32::epsilon() {
-                            self.window_state.as_ref().unwrap().write().set_cursor_position(PhysicalPosition::new(position.x as f32, 0.0));
-                            self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
-                        }
-                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse(device_id.clone(), position.clone());
-                    }
+                    CameraMode::FLY => {}
                     CameraMode::ORBIT => {
                         match COMMANDS.lock() {
                             Ok(mut m) => {
@@ -244,7 +225,16 @@ impl ApplicationHandler for MState {
         match event {
             DeviceEvent::Added => {}
             DeviceEvent::Removed => {}
-            DeviceEvent::MouseMotion { .. } => {}
+            DeviceEvent::MouseMotion { delta } => {
+                let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
+                match state {
+                    CameraMode::FLY => {
+                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone() ,delta.0,delta.1);
+                    }
+                    CameraMode::ORBIT => {}
+                    CameraMode::TOUCH => {}
+                }
+            }
             DeviceEvent::MouseWheel { .. } => {}
             DeviceEvent::Motion { .. } => {}
             DeviceEvent::Button { .. } => {}

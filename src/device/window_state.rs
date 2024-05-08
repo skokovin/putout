@@ -196,7 +196,7 @@ impl WindowState {
     }
 
     fn hide_cursor(&self) {
-        let _ = self.window.read().set_cursor_grab(CursorGrabMode::Confined);
+        let _ = self.window.read().set_cursor_grab(CursorGrabMode::Locked);
         self.window.read().set_cursor_visible(false);
     }
     fn unhide_cursor(&self) {
