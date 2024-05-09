@@ -17,7 +17,8 @@ pub enum RemoteCommand {
     OnMouseWheel(( DeviceId,  MouseScrollDelta, TouchPhase)),
     OnKeyBoard((DeviceId, KeyEvent, bool)),
     OnMouseButton((DeviceId, ElementState, MouseButton)),
-    OnOffScreenReady()
+    OnOffScreenReady(),
+    OnSetTransparentMat((i32,i32)),
 
 }
 

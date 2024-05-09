@@ -120,7 +120,7 @@ impl DeviceState {
                 });
 
                 {
-                    let _render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Render Pass1"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &smaa_frame,
@@ -142,39 +142,45 @@ impl DeviceState {
                         occlusion_query_set: None,
                     });
                 }
-
                 //SCENE_RENDERING
-                mc.scene_state.gpu_mems.iter().for_each(|mem| {
-                    if (mem.is_renderable) {
-                        let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("Render Pass HULL"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &smaa_frame,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: StoreOp::Store,
-                                },
-                            })],
-                            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                                view: &depth_view,
-                                depth_ops: Some(wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: StoreOp::Store,
-                                }),
-                                stencil_ops: None,
+
+                {
+                    let mut render_pass: RenderPass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Render Pass HULL"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &smaa_frame,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: StoreOp::Store,
+                            },
+                        })],
+                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                            view: &depth_view,
+                            depth_ops: Some(wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: StoreOp::Store,
                             }),
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
-                        render_pass.set_pipeline(&pl.mesh_render_pipeline);
-                        render_pass.set_bind_group(0, &bg, &[]);
-                        render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
-                        render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                        let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
-                        render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
-                    }
-                });
+                            stencil_ops: None,
+                        }),
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    });
+                    render_pass.set_pipeline(&pl.mesh_render_pipeline);
+                    render_pass.set_bind_group(0, &bg, &[]);
+
+                    mc.scene_state.gpu_mems.iter().for_each(|mem| {
+                        if (mem.is_renderable) {
+                            render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
+                            render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                            let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
+                            render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
+                        }
+                    });
+                }
+
+
+
 
                 if (!mc.is_mouse_btn_active && mc.active_point.x<f32::max_value() && mc.scene_state.camera.mode==CameraMode::ORBIT) {
 
@@ -314,41 +320,43 @@ impl DeviceState {
             }
 
             //DRAW TO BUFFER
-            mc.scene_state.gpu_mems.iter().for_each(|mem| {
-                if (mem.is_renderable) {
-                    {
-                        let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
-                        let mut sel_render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("Render Pass HULL"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: &sel_texture_view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: StoreOp::Store,
-                                },
-                            })],
-                            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                                view: &sel_depth_view,
-                                depth_ops: Some(wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: StoreOp::Store,
-                                }),
-                                stencil_ops: None,
-                            }),
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                        });
-
-                        sel_render_pass.set_pipeline(&pl.selection_render_pipeline);
-                        sel_render_pass.set_bind_group(0, &bg, &[]);
-                        sel_render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
-                        sel_render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
-                        sel_render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
-                        is_done = true;
+            {
+                let mut sel_render_pass: RenderPass = sel_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Render Pass HULL"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &sel_texture_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &sel_depth_view,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: StoreOp::Store,
+                        }),
+                        stencil_ops: None,
+                    }),
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                sel_render_pass.set_pipeline(&pl.selection_render_pipeline);
+                sel_render_pass.set_bind_group(0, &bg, &[]);
+                mc.scene_state.gpu_mems.iter().for_each(|mem| {
+                    if (mem.is_renderable) {
+                        {
+                            let indx_count = (mem.i_buffer.size() / mem::size_of::<i32>() as u64) as u32;
+                            sel_render_pass.set_vertex_buffer(0, mem.v_buffer.slice(..));
+                            sel_render_pass.set_index_buffer(mem.i_buffer.slice(..), wgpu::IndexFormat::Uint32);
+                            sel_render_pass.draw_indexed(Range { start: 0, end: indx_count }, 0, Range { start: 0, end: 1 });
+                            is_done = true;
+                        }
                     }
-                }
-            });
+                });
+            }
+
             //Copy Buffer to Host
             if (is_done) {
                 {

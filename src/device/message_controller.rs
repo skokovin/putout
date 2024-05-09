@@ -21,7 +21,7 @@ use crate::remote::{hull_state, RemoteCommand};
 use crate::scene::mesh_loader::read_hull_unpacked_new_format;
 use crate::scene::scene_state::SceneState;
 use crate::shared::dimension::{Dimension, DimensionMode};
-use crate::shared::materials_lib::Material;
+use crate::shared::materials_lib::{EQ_TY_MAX, EQ_TY_MIN, Material, PIPE_TY_MAX, PIPE_TY_MIN, TY_HULL_OTHERS, TY_HULL_OUTERPLATES, TY_HULL_PLATES, TY_HULL_PROFILES};
 use crate::shared::mesh_common::MeshVertex;
 use crate::shared::shared_buffers::SharedBuffers;
 use crate::shared::text_layout::TextLayout;
@@ -147,9 +147,9 @@ impl MessageController {
 
     pub fn on_zoom(&mut self, device_id: DeviceId, delta: MouseScrollDelta, touch_phase: TouchPhase) {
         let is_dirty_from_mouse = self.scene_state.camera.on_zoom(device_id, delta, touch_phase);
-        if is_dirty_from_mouse {
-            self.is_state_dirty = is_dirty_from_mouse;
-        }
+       // if is_dirty_from_mouse {
+            self.is_state_dirty = true;
+       // }
     }
     pub fn on_resize(&mut self, w: u32, h: u32, sf: f64) {
         self.scene_state.camera.resize(w, h);
@@ -274,7 +274,7 @@ impl MessageController {
                         info!("CHange Mode{:?}", key);
                         self.window_state.clone().write().change_cursor_mode();
                         self.scene_state.camera.change_mode();
-                        self.is_state_dirty=true;
+                        self.is_state_dirty = true;
                         info!("FINISH CHange Mode{:?}", key);
                     }
                 }
@@ -283,7 +283,9 @@ impl MessageController {
             PhysicalKey::Code(KeyCode::F5) => {
                 match key.state {
                     ElementState::Pressed => {}
-                    ElementState::Released => {}
+                    ElementState::Released => {
+                        self.set_transparent(0, 1);
+                    }
                 }
             }
 
@@ -600,11 +602,14 @@ impl MessageController {
                                 self.is_off_screen_ready = true;
                             }
                             RemoteCommand::SwitchToGameMode() => {
-                                if(self.scene_state.camera.mode!= CameraMode::FLY){
+                                if (self.scene_state.camera.mode != CameraMode::FLY) {
                                     self.window_state.clone().write().change_cursor_mode();
                                     self.scene_state.camera.change_mode();
-                                    self.is_state_dirty=true;
+                                    self.is_state_dirty = true;
                                 }
+                            }
+                            RemoteCommand::OnSetTransparentMat((alfa, mode)) => {
+                                self.set_transparent(alfa, mode);
                             }
                         }
                     }
@@ -656,12 +661,45 @@ impl MessageController {
     pub fn get_mouse_pos(&self) -> PhysicalPosition<f64> {
         self.scene_state.camera.get_mouse_pos(self.window_state.read().get_scale_factor())
     }
-
     pub fn set_pack_id(&mut self, active_pack_id: u32) {
         self.active_pack_id = active_pack_id
     }
     pub fn get_pack_id(&self) -> u32 {
         self.active_pack_id
+    }
+    fn set_transparent(&mut self, alfa: i32, mode: i32) {
+        match mode {
+            0 => {
+                self.materials[TY_HULL_PROFILES as usize].color[3] = alfa as f32 / 100.0;
+                self.materials[TY_HULL_PLATES as usize].color[3] = alfa as f32 / 100.0;
+                self.materials[TY_HULL_OUTERPLATES as usize].color[3] = alfa as f32 / 100.0;
+                self.materials[TY_HULL_OTHERS as usize].color[3] = alfa as f32 / 100.0;
+                self.is_materials_dirty = true;
+            }
+            //PIPE
+            1 => {
+                self.materials[PIPE_TY_MIN as usize..PIPE_TY_MAX as usize].iter_mut().for_each(|m| {
+                    m.color[3] = alfa as f32 / 100.0;
+                    warn!("SET PIPE {}", m.color[3]);
+                });
+                self.is_materials_dirty = true;
+
+            }
+            //EQ
+            2 => {
+                let mut index=EQ_TY_MIN;
+                self.materials[EQ_TY_MIN as usize..EQ_TY_MAX as usize].iter_mut().for_each(|m| {
+                    if(index!=TY_HULL_PLATES && index!=TY_HULL_OUTERPLATES){
+                        m.color[3] = alfa as f32 / 100.0;
+                    }
+
+                    warn!("SET EQ {}", m.color[3]);
+                    index=index+1;
+                });
+                self.is_materials_dirty = true;
+            }
+            _ => {}
+        }
     }
 }
 

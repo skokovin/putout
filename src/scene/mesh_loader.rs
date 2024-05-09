@@ -28,15 +28,14 @@ const HULLDV0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_mesh")).as_slice();
 const HULLDB0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_bbx")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
 const HULLID0: &[u8] = (include_bytes!("../dmp/hull/nf/0data_hash")).as_slice();
-
 #[cfg(not(target_arch = "wasm32"))]
-const HULLDI1: &[u8] = &[0; 1];
+const HULLDI1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_ind")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
-const HULLDV1: &[u8] =&[0; 1];
+const HULLDV1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_mesh")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
-const HULLDB1: &[u8] = &[0; 1];
+const HULLDB1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_bbx")).as_slice();
 #[cfg(not(target_arch = "wasm32"))]
-const HULLID1: &[u8] = &[0; 1];
+const HULLID1: &[u8] = (include_bytes!("../dmp/hull/nf/1data_hash")).as_slice();
 
 #[cfg(not(target_arch = "wasm32"))]
 const HULLDI2: &[u8] = &[0; 1];
@@ -254,6 +253,7 @@ pub fn read_hull_packed_new_format0() -> (Vec<MeshVertex>, Vec<i32>, Vec<i32>, B
     });
 
     let mut meta_data: Vec<i32> =   Vec::with_capacity(meshes_bytes_back.len());
+
     meshes_bytes_back.iter().for_each(|m| {
         meta_data.push(unpack_id(m.material_index as u32) as i32);
     });

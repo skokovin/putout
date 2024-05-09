@@ -5,9 +5,19 @@ use palette::rgb::Rgb;
 use palette::Srgb;
 use phf::phf_map;
 
+pub const PIPE_TY_MIN: i32 = 20;
+pub const PIPE_TY_MAX: i32 = 40;
+pub const EQ_TY_MIN: i32 = 80;
+pub const EQ_TY_MAX: i32 = 100;
+
+pub const TY_HULL_PROFILES: i32 = 74;
+pub const TY_HULL_PLATES: i32 = 84;
+pub const TY_HULL_OUTERPLATES: i32 = 86;
+pub const TY_HULL_OTHERS: i32 = 15;
 pub const MATERIALS_COUNT: usize = 140;
 pub const SELECTION_HULL_MAT: i32 = 1;
 pub const HIDDEN_HULL_MAT: i32 = 0;
+
 pub enum HullPartTypes {
     _ShellLongitudinal = 0,
     Decklongitudinal = 1,
@@ -96,7 +106,7 @@ impl Material {
     }
     pub fn generate_materials() -> Vec<Material> {
         let mut ret: Vec<Material> = vec![];
-        let alfa:f32=1.0;
+        let alfa: f32 = 1.0;
         ret.push(Material::default([0.0, 0.0, 0.0, 0.0]));// HIDDEN
         ret.push(Material::default([1.0, 1.0, 1.0, 1.0]));// SELECT
         ret.push(Material::default([0.0, 0.0, 0.0, 1.0]));
@@ -107,21 +117,21 @@ impl Material {
         ret.push(Material::default([0.0, 0.0, 0.0, 1.0]));
         ret.push(Material::default([0.0, 0.0, 0.0, 1.0]));
         ret.push(Material::default([0.0, 0.0, 0.0, 1.0]));
-        OPENCOLORS.values().for_each(|&color_group|{
-            color_group.iter().for_each(|c|{
-                let srgb =Srgb::from(*c).into_linear() as Rgb<Linear<palette::encoding::Srgb>, f32>;
-                let mm=Material::default([srgb.red, srgb.green, srgb.blue, alfa]);
+        OPENCOLORS.values().for_each(|&color_group| {
+            color_group.iter().for_each(|c| {
+                let srgb = Srgb::from(*c).into_linear() as Rgb<Linear<palette::encoding::Srgb>, f32>;
+                let mm = Material::default([srgb.red, srgb.green, srgb.blue, alfa]);
                 ret.push(mm);
             })
         });
         ret
     }
-    pub fn type_to_color(ty:i32)->i32{
-       match   ty{
-           0|2|7|16|19|21|24|17=>74, //PROFILES
-           8|12|15|18|20|22|23=>84,//PLATES
-           9=>86,//HULL PLATES
-           _=>15
-       }
+    pub fn type_to_color(ty: i32) -> i32 {
+        match ty {
+            0 | 2 | 7 | 16 | 19 | 21 | 24 | 17 => TY_HULL_PROFILES, //PROFILES
+            8 | 12 | 15 | 18 | 20 | 22 | 23 => TY_HULL_PLATES,//PLATES
+            9 => TY_HULL_OUTERPLATES,//HULL PLATES
+            _ => TY_HULL_OTHERS
+        }
     }
 }

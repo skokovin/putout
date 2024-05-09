@@ -179,12 +179,14 @@ impl ApplicationHandler for MState {
                 self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
-                match COMMANDS.lock() {
+                self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
+                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = true;
+               /* match COMMANDS.lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
                     }
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
-                }
+                }*/
             }
             WindowEvent::MouseInput { device_id, state, button } => {
                 match COMMANDS.lock() {

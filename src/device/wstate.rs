@@ -223,6 +223,7 @@ impl ApplicationHandler for WState {
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
                 self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
+                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = true;
             }
             WindowEvent::MouseInput { device_id, state, button } => {
                 match COMMANDS.lock() {
@@ -248,8 +249,8 @@ impl ApplicationHandler for WState {
                         self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
                     }
                     if (
-                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested &&
-                            !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
+                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested
+                            &&!self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
                     ) {
                         self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
                         self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;

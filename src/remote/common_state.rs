@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen_futures::js_sys::{Float32Array, Uint8Array};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_futures::js_sys::ArrayBuffer;
+use web_sys::js_sys::{Int32Array, Uint32Array};
 
 use crate::device::message_controller::SnapMode;
 use crate::remote::{ArrayF32State, CommandState, RemoteCommand, RemoteMeshData};
@@ -225,12 +226,28 @@ pub fn load_pack_to_gpu(pack_id: i32) {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn switch_to_game_mode(){
+pub fn switch_to_game_mode() {
     match COMMANDS.lock() {
         Ok(mut m) => {
             m.values.push_back(RemoteCommand::SwitchToGameMode());
         }
         Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn set_transparent(arr: Int32Array) {
+    let values: Vec<i32> = arr.to_vec();
+    if (values.len() == 2) {
+        let alfa = values[0];
+        let mode = values[1];
+        match COMMANDS.lock() {
+            Ok(mut m) => {
+                m.values.push_back(RemoteCommand::OnSetTransparentMat((alfa, mode)));
+            }
+            Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+        }
     }
 }
 
