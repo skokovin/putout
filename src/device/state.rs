@@ -100,7 +100,6 @@ impl ApplicationHandler for MState {
     // This is a common indicator that you can create a window.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let attr = Window::default_attributes().with_min_inner_size(PhysicalSize::new(800, 600)).with_inner_size(PhysicalSize::new(800, 600));
-
         let w = Rc::new(RwLock::new(event_loop.create_window(attr).unwrap()));
         self.window = Some(w.clone());
         let _window_state: Rc<RwLock<WindowState>> = Rc::new(RwLock::new(WindowState::new(
@@ -128,8 +127,6 @@ impl ApplicationHandler for MState {
         self.window_state = Some(_window_state);
     }
     fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        // `unwrap` is fine, the window will always be available when
-        // receiving a window event.
         let window = self.window.as_ref().unwrap();
         self.message_controller.as_ref().unwrap().write().on_render();
         match event {
@@ -179,14 +176,14 @@ impl ApplicationHandler for MState {
                 self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
-                self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
-                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = true;
-               /* match COMMANDS.lock() {
+                //self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
+                match COMMANDS.lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
+                        window.read().request_redraw();
                     }
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
-                }*/
+                }
             }
             WindowEvent::MouseInput { device_id, state, button } => {
                 match COMMANDS.lock() {
@@ -207,19 +204,15 @@ impl ApplicationHandler for MState {
             WindowEvent::ThemeChanged(_) => {}
             WindowEvent::Occluded(_) => {}
             WindowEvent::RedrawRequested => {
-                if let Some(window) = self.window.as_ref() {
-                    {
-                        self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-                    }
-                    if (
-                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested &&
-                            !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
-                    ) {
-                        self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
-                        self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
-                    }
-                    window.read().request_redraw();
+                if (
+                    self.message_controller.as_ref().unwrap().read().is_capture_screen_requested &&
+                        !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
+                ) {
+                    self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
+                    self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
                 }
+                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
+                window.read().request_redraw();
             }
         }
     }
@@ -231,7 +224,7 @@ impl ApplicationHandler for MState {
                 let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
                 match state {
                     CameraMode::FLY => {
-                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone() ,delta.0,delta.1);
+                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
                     }
                     CameraMode::ORBIT => {}
                     CameraMode::TOUCH => {}

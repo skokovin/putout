@@ -69,7 +69,7 @@ pub struct MessageController {
     pub active_triangle: Triangle,
     pub is_capture_screen_requested: bool,
     pub is_off_screen_ready: bool,
-    is_state_dirty: bool,
+    pub(crate) is_state_dirty: bool,
     pub text_layout: Rc<RwLock<TextLayout>>,
     pub dimension: Dimension,
     pub test_load: i32,
@@ -524,6 +524,7 @@ impl MessageController {
                             self.is_capture_screen_requested = true;
                             self.is_state_dirty = false;
                         }
+
                     }
                     Some(command) => {
                         match command {

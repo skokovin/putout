@@ -38,7 +38,7 @@ impl WState {
         let (instance, adapter, device, queue): (Rc<RwLock<Instance>>, Rc<RwLock<Adapter>>, Rc<RwLock<Device>>, Rc<RwLock<Queue>>) = {
             let mut limits: Limits = Limits::default();
             limits.max_buffer_size = (134217728) * 16;//128*20=2560 MB //WASM ONLY 2 Gb
-            limits.max_storage_buffer_binding_size= (134217728) * 16-4; //(134217728) * 16;
+            limits.max_storage_buffer_binding_size = (134217728) * 16 - 4; //(134217728) * 16;
             let _instance: Instance = Instance::new(wgpu::InstanceDescriptor {
                 backends: Backends::PRIMARY,
                 flags: Default::default(),
@@ -52,14 +52,14 @@ impl WState {
                 compatible_surface: None,
             };
             let _adapter: Adapter = _instance.request_adapter(&adapter_options).await.unwrap_or_else(|| { panic!("Cant init adapter") });
-            let mut dd=DeviceDescriptor::default();
-            dd.required_limits=limits;
+            let mut dd = DeviceDescriptor::default();
+            dd.required_limits = limits;
 
             let (_device, _queue): (Device, Queue) = {
                 let (device, queue) = _adapter.request_device(
                     &dd,
                     None,
-                ).await.unwrap_or_else(|e| panic!("Cant init queue {:?}",e));
+                ).await.unwrap_or_else(|e| panic!("Cant init queue {:?}", e));
                 (device, queue)
             };
 
@@ -88,7 +88,7 @@ impl WState {
 
 impl ApplicationHandler for WState {
     #[cfg(not(target_arch = "wasm32"))]
-    fn resumed(&mut self, event_loop: &ActiveEventLoop){}
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {}
     // This is a common indicator that you can create a window.
     #[cfg(target_arch = "wasm32")]
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -106,11 +106,11 @@ impl ApplicationHandler for WState {
                                 info!("HTML ROOM SIZE IS {} {}",sw,sh);
                                 let ws: PhysicalSize<u32> = PhysicalSize::new(sw as u32, sh as u32);
                                 let attr = Window::default_attributes().with_inner_size(ws);
-                                match event_loop.create_window(attr){
+                                match event_loop.create_window(attr) {
                                     Ok(window) => {
                                         let _scale_factor = window.scale_factor() as f32;
                                         match window.canvas() {
-                                            None => {panic!("CANT GET CANVAS")}
+                                            None => { panic!("CANT GET CANVAS") }
                                             Some(canvas) => {
                                                 canvas.set_id("cws_main");
                                                 let canvas_style = canvas.style();
@@ -134,11 +134,10 @@ impl ApplicationHandler for WState {
                                             }
                                         }
                                     }
-                                    Err(e) => {panic!("CANT BUILD WINDOWS {:?}", e)}
+                                    Err(e) => { panic!("CANT BUILD WINDOWS {:?}", e) }
                                 }
 
                                 //info!("HTML ROOM SIZE IS {} {}",sw,sh);
-
                             }
                         }
                     }
@@ -176,7 +175,7 @@ impl ApplicationHandler for WState {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
         // `unwrap` is fine, the window will always be available when
         // receiving a window event.
-        //let window = self.window.as_ref().unwrap();
+        let window = self.window.as_ref().unwrap();
         self.message_controller.as_ref().unwrap().write().on_render();
         match event {
             WindowEvent::ActivationTokenDone { .. } => {}
@@ -205,8 +204,7 @@ impl ApplicationHandler for WState {
             WindowEvent::ModifiersChanged(_) => {}
             WindowEvent::Ime(_) => {}
             WindowEvent::CursorMoved { device_id, position } => {
-
-                let state =self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
+                let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
 
                 match state {
                     CameraMode::FLY => {}
@@ -215,20 +213,24 @@ impl ApplicationHandler for WState {
                     }
                     CameraMode::TOUCH => {}
                 }
-
             }
             WindowEvent::CursorEntered { .. } => {}
             WindowEvent::CursorLeft { device_id } => {
                 self.message_controller.as_ref().unwrap().write().scene_state.camera.relese_mouse();
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
-                self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
-                self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = true;
+                match COMMANDS.lock() {
+                    Ok(mut m) => {
+                        m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
+                        window.read().request_redraw();
+                    }
+                    Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                }
             }
             WindowEvent::MouseInput { device_id, state, button } => {
                 match COMMANDS.lock() {
                     Ok(mut m) => {
-                        m.values.push_back(RemoteCommand::OnMouseButton((device_id,state,button)));
+                        m.values.push_back(RemoteCommand::OnMouseButton((device_id, state, button)));
                     }
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
@@ -244,18 +246,14 @@ impl ApplicationHandler for WState {
             WindowEvent::ThemeChanged(_) => {}
             WindowEvent::Occluded(_) => {}
             WindowEvent::RedrawRequested => {
-                if let Some(window) = self.window.as_ref() {
-                    {
-                        self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-                    }
-                    if (
-                        self.message_controller.as_ref().unwrap().read().is_capture_screen_requested
-                            &&!self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
-                    ) {
-                        self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
-                        self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
-                    }
-                    window.read().request_redraw();
+                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
+                window.read().request_redraw();
+                if (
+                    self.message_controller.as_ref().unwrap().read().is_capture_screen_requested
+                        && !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
+                ) {
+                    self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
+                    self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
                 }
             }
         }
@@ -265,10 +263,10 @@ impl ApplicationHandler for WState {
             DeviceEvent::Added => {}
             DeviceEvent::Removed => {}
             DeviceEvent::MouseMotion { delta } => {
-               let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
+                let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
                 match state {
                     CameraMode::FLY => {
-                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone() ,delta.0,delta.1);
+                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
                     }
                     CameraMode::ORBIT => {}
                     CameraMode::TOUCH => {}
@@ -281,6 +279,6 @@ impl ApplicationHandler for WState {
         }
     }
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        self.window_state.as_ref().unwrap().write().request_redraw( self.device_state.as_ref().unwrap().as_ref());
+        self.window_state.as_ref().unwrap().write().request_redraw(self.device_state.as_ref().unwrap().as_ref());
     }
 }
