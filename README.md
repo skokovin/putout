@@ -42,9 +42,13 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 
 ## Comments
 
-At the first for interactivity i used AABB and ray tracing, but found better technic for this purpose - render to buffer. After each camera transformation special pipeline takes a snapshot, then algorithm analyzed area under mose cursor. Special pipeline use color and alfa chanels for pass back coords and id. </br>
+At the first for interactivity I used AABB and ray tracing, but found better technic for this purpose - render to buffer. After each camera transformation special pipeline takes a snapshot, then algorithm analyzed area under mose cursor. Special pipeline use color and alfa chanels for pass back coords and id. </br>
 
 Some logics of hide/select moved to shaders. </br>
+
+## Run Locally
+
+It can start on PC without UI. Press F2 to srtart loading process.
 
 ## Disclaimer
 
