@@ -38,7 +38,7 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 
 ## Acknowledgements
 
- - [A lot of perfect ships there ](https://www.nautic.is/)
+ - [NAUTIC. A lot of perfect ships there ](https://www.nautic.is/)
 
 ## Build
 
