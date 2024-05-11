@@ -46,9 +46,9 @@ At the first for interactivity i used AABB and ray tracing, but found better tec
 
 Some logics of hide/select moved to shaders. </br>
 
-## Running unit tests
+## Disclaimer
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+It is experemental and not finished yet.
 
 ## Running end-to-end tests!
 
