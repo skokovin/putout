@@ -23,6 +23,18 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 [200mb ship](https://viewer004-8db15.web.app/). </br>
 [500mb ship](https://viewer701-f462d.web.app/). </br>
 
+
+## Features
+
+- Hide/Selct
+- 6 sliders
+- Measuring
+- ID for DB requests
+- Transparency
+- Reset center of rotation
+- Orbit/FPS cameras
+
+
 ## Build
 
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
