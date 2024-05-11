@@ -1,6 +1,6 @@
-# Portf3
+# Ship web viewer
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.2.3.
+Shipyard is a kind of chaos. Web viewer is attempt to direct all from one point. No install, no files, no versions just click the link and see.
 
 ## Development server
 
