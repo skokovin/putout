@@ -5,9 +5,9 @@ Shipyard is a kind of chaos. Web viewer is attempt to direct all from one point.
 ![Untitled video - Made with Clipchamp](https://github.com/skokovin/putout/assets/13080037/514d2e2b-2522-4032-9699-3133bf80d14b)
 
 
-## Development server
+## Intro
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+When building a ship or something large, there’s typically a 3D model with attributes. Usually, these models can take up a lot of gigabytes. Is there a way to transfer the model over the network and display it in a browser? As far as I know, Chrome can address up to 16GB per tab, also need a way to package a mesh data.
 
 ## Code scaffolding
 
