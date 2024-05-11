@@ -12,9 +12,9 @@ When building a ship or something large, there’s typically a 3D model with att
 ## Basic Tools
 
 Rust - philosophy to do it right. </br>
-WGPU - The brilliant cross-platform, safe, pure-Rust graphics API.
-WINIT - for window handling.
-wasm-pack - to move all to WebAssembly.
+WGPU - The brilliant cross-platform, safe, pure-Rust graphics API.</br>
+WINIT - for window handling.</br>
+wasm-pack - to move all to WebAssembly.</br>
 Angular - to stay on static typing (other project)
 
 
