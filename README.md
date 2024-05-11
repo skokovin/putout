@@ -33,6 +33,7 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 - Transparency
 - Reset center of rotation
 - Orbit/FPS cameras
+- Primitive Snap
 
 
 ## Build
