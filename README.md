@@ -40,9 +40,11 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 
  - [NAUTIC. A lot of perfect ships there ](https://www.nautic.is/)
 
-## Build
+## Comments
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+At the first for interactivity i used AABB and ray tracing, but found better technic for this purpose - render to buffer. After each camera transformation special pipeline takes a snapshot, then algorithm analyzed area under mose cursor. Special pipeline use color and alfa chanels for pass back coords and id. </br>
+
+Some logics of hide/select moved to shaders. </br>
 
 ## Running unit tests
 
