@@ -17,6 +17,9 @@ WINIT - for window handling.</br>
 wasm-pack - to move all to WebAssembly.</br>
 Angular - to stay on static typing (other project)
 
+## Demos
+
+Video instruction [Karma](https://www.youtube.com/watch?v=E0fKqEAThts).
 
 
 ## Build
