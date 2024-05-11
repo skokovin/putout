@@ -14,14 +14,14 @@ pub enum RemoteCommand {
     SwitchToGameMode(),
 
     OnMouseMove((DeviceId, PhysicalPosition<f64>)),
-    OnMouseWheel(( DeviceId,  MouseScrollDelta, TouchPhase)),
+    OnMouseMoveDelta((DeviceId,f64, f64)),
+    OnMouseWheel((DeviceId, MouseScrollDelta, TouchPhase)),
     OnKeyBoard((DeviceId, KeyEvent, bool)),
     OnMouseButton((DeviceId, ElementState, MouseButton)),
     OnOffScreenReady(),
-    OnSetTransparentMat((i32,i32)),
+    OnSetTransparentMat((i32, i32)),
 
 }
-
 
 
 pub struct CommandState {

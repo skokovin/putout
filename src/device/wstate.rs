@@ -201,7 +201,7 @@ impl ApplicationHandler for WState {
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
-            WindowEvent::ModifiersChanged(_) => {}
+            WindowEvent::ModifiersChanged(m) => {}
             WindowEvent::Ime(_) => {}
             WindowEvent::CursorMoved { device_id, position } => {
                 let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
@@ -209,7 +209,13 @@ impl ApplicationHandler for WState {
                 match state {
                     CameraMode::FLY => {}
                     CameraMode::ORBIT => {
-                        self.message_controller.as_ref().unwrap().write().on_mouse_move(device_id.clone(), position.clone());
+                        //self.message_controller.as_ref().unwrap().write().on_mouse_move(device_id.clone(), position.clone());
+                        match COMMANDS.try_lock() {
+                            Ok(mut m) => {
+                                m.values.push_back(RemoteCommand::OnMouseMove((device_id, position)));
+                            }
+                            Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                        }
                     }
                     CameraMode::TOUCH => {}
                 }
@@ -222,7 +228,7 @@ impl ApplicationHandler for WState {
                 match COMMANDS.lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
-                        window.read().request_redraw();
+                        //window.read().request_redraw();
                     }
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
@@ -246,8 +252,8 @@ impl ApplicationHandler for WState {
             WindowEvent::ThemeChanged(_) => {}
             WindowEvent::Occluded(_) => {}
             WindowEvent::RedrawRequested => {
-                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-                window.read().request_redraw();
+
+                //window.read().request_redraw();
                 if (
                     self.message_controller.as_ref().unwrap().read().is_capture_screen_requested
                         && !self.message_controller.as_ref().unwrap().read().is_mouse_btn_active
@@ -255,6 +261,7 @@ impl ApplicationHandler for WState {
                     self.device_state.as_ref().unwrap().write().capture_screen(self.window_state.as_ref().unwrap());
                     self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
                 }
+                self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
             }
         }
     }
@@ -263,12 +270,16 @@ impl ApplicationHandler for WState {
             DeviceEvent::Added => {}
             DeviceEvent::Removed => {}
             DeviceEvent::MouseMotion { delta } => {
+                let window = self.window.as_ref().unwrap();
                 let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
                 match state {
                     CameraMode::FLY => {
                         self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
                     }
-                    CameraMode::ORBIT => {}
+                    CameraMode::ORBIT => {
+                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
+                        window.read().request_redraw();
+                    }
                     CameraMode::TOUCH => {}
                 }
             }

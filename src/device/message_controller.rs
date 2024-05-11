@@ -144,12 +144,16 @@ impl MessageController {
             self.is_state_dirty = is_dirty_from_mouse;
         }
     }
+    pub fn on_mouse_move_delta(&mut self, device_id: DeviceId, dx: f64, dy: f64) {
+        self.scene_state.camera.on_mouse_dx_dy(device_id, dx, dy);
+        self.is_state_dirty = true;
+    }
 
     pub fn on_zoom(&mut self, device_id: DeviceId, delta: MouseScrollDelta, touch_phase: TouchPhase) {
         let is_dirty_from_mouse = self.scene_state.camera.on_zoom(device_id, delta, touch_phase);
-       // if is_dirty_from_mouse {
-            self.is_state_dirty = true;
-       // }
+        // if is_dirty_from_mouse {
+        self.is_state_dirty = true;
+        // }
     }
     pub fn on_resize(&mut self, w: u32, h: u32, sf: f64) {
         self.scene_state.camera.resize(w, h);
@@ -524,7 +528,6 @@ impl MessageController {
                             self.is_capture_screen_requested = true;
                             self.is_state_dirty = false;
                         }
-
                     }
                     Some(command) => {
                         match command {
@@ -588,6 +591,9 @@ impl MessageController {
                             RemoteCommand::OnMouseMove((id, pos)) => {
                                 self.on_mouse_move(id, pos);
                             }
+                            RemoteCommand::OnMouseMoveDelta((device_id,dx, dy)) => {
+                                self.on_mouse_move_delta(device_id,dx, dy);
+                            }
 
                             RemoteCommand::OnMouseWheel((device_id, delta, touch_phase)) => {
                                 self.on_zoom(device_id, delta, touch_phase);
@@ -598,6 +604,10 @@ impl MessageController {
                             RemoteCommand::OnMouseButton((device_id, state, button)) => {
                                 self.scene_state.camera.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
                                 self.on_mouse_btn_click(device_id.clone(), state.clone(), button.clone());
+                                match state{
+                                    ElementState::Pressed => {}
+                                    ElementState::Released => {self.is_state_dirty=true}
+                                }
                             }
                             RemoteCommand::OnOffScreenReady() => {
                                 self.is_off_screen_ready = true;
@@ -684,18 +694,17 @@ impl MessageController {
                     warn!("SET PIPE {}", m.color[3]);
                 });
                 self.is_materials_dirty = true;
-
             }
             //EQ
             2 => {
-                let mut index=EQ_TY_MIN;
+                let mut index = EQ_TY_MIN;
                 self.materials[EQ_TY_MIN as usize..EQ_TY_MAX as usize].iter_mut().for_each(|m| {
-                    if(index!=TY_HULL_PLATES && index!=TY_HULL_OUTERPLATES){
+                    if (index != TY_HULL_PLATES && index != TY_HULL_OUTERPLATES) {
                         m.color[3] = alfa as f32 / 100.0;
                     }
 
                     warn!("SET EQ {}", m.color[3]);
-                    index=index+1;
+                    index = index + 1;
                 });
                 self.is_materials_dirty = true;
             }

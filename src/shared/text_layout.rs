@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use cgmath::num_traits::Float;
 use cgmath::{EuclideanSpace, Matrix4, MetricSpace, Point3, Vector2, Vector4};
-use glyphon::{Attrs, Buffer, Color, Family, fontdb, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer};
+use glyphon::{Attrs, Buffer, Cache, Color, Family, fontdb, FontSystem, Metrics, Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport};
 use glyphon::fontdb::{Source};
 
 use parking_lot::RwLock;
@@ -63,6 +63,7 @@ pub struct TextLayout {
     pub text_renderer: TextRenderer,
     pub atlas: TextAtlas,
     cache: SwashCache,
+    pub viewport: Viewport,
     font_system: FontSystem,
     snap_symbol_buff: Buffer,
     snap_value_buff: Buffer,
@@ -79,8 +80,10 @@ impl TextLayout {
     pub fn new(device: Rc<RwLock<Device>>, queue: Rc<RwLock<Queue>>, surface_config: SurfaceConfiguration) -> Self {
         let width = surface_config.width;
         let height = surface_config.height;
-        let mut cache: SwashCache = SwashCache::new();
-        let mut atlas: TextAtlas = TextAtlas::new(&device.read() , &queue.read(), surface_config.format);
+        let mut swash_cache: SwashCache = SwashCache::new();
+        let cache = Cache::new(&device.read());
+        let mut viewport: Viewport = Viewport::new(&device.read(), &cache);
+        let mut atlas: TextAtlas = TextAtlas::new(&device.read() , &queue.read(), &cache, surface_config.format);
         let mut text_renderer: TextRenderer = TextRenderer::new(&mut atlas, &device.read(), MultisampleState::default(), None);
         let mut font_system: FontSystem = FontSystem::new_with_fonts(FontSource::generate_fonts());
 
@@ -107,12 +110,9 @@ impl TextLayout {
             &queue.read(),
             &mut font_system,
             &mut atlas,
-            Resolution {
-                width: (width) as u32,
-                height: (height) as u32,
-            },
+            &viewport,
             [],
-            &mut cache,
+            &mut swash_cache,
         ).unwrap();
 
         Self {
@@ -123,7 +123,8 @@ impl TextLayout {
             queue: queue.clone(),
             text_renderer: text_renderer,
             atlas: atlas,
-            cache: cache,
+            cache: swash_cache,
+            viewport:viewport,
             font_system: font_system,
             snap_symbol_buff: snap_symbol_buff,
             snap_value_buff: snap_value_buff,
@@ -138,9 +139,19 @@ impl TextLayout {
     }
 
     pub fn resize(&mut self, width: u32, height: u32, scale_factor: f64) {
+
+
         self.width = width;
         self.height = height;
         self.set_scale_factor(scale_factor);
+        let resol=Resolution {
+            width: (self.width as f64 / self.scale_factor) as u32,
+            height: (self.height as f64 / self.scale_factor) as u32,
+        };
+        self.viewport.update(
+            &self.queue.read(),
+            resol
+        );
         self.is_dirty = true;
     }
     #[cfg(not(target_arch = "wasm32"))]
@@ -264,15 +275,21 @@ impl TextLayout {
             text_areas.push(dim_area);
         }
 
+/*        let resol=Resolution {
+            width: (self.width as f64 / self.scale_factor) as u32,
+            height: (self.height as f64 / self.scale_factor) as u32,
+        };
+        self.viewport.update(
+            &self.queue.read(),
+            resol
+        );*/
+
         self.text_renderer.prepare(
             &self.device.read(),
             &self.queue.read(),
             &mut self.font_system,
             &mut self.atlas,
-            Resolution {
-                width: (self.width as f64 / self.scale_factor) as u32,
-                height: (self.height as f64 / self.scale_factor) as u32,
-            },
+            &mut self.viewport,
             text_areas,
             &mut self.cache,
         ).unwrap();

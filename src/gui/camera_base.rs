@@ -267,12 +267,12 @@ impl CameraBase {
             let dy = self.mouse_pos.y - pos.y;
             match self.mode {
                 CameraMode::FLY => {
-                    if abs(dx) < 100.0 && abs(dy) < 100.0 {
+         /*           if abs(dx) < 100.0 && abs(dy) < 100.0 {
                         self.camera_fly.update_mouse(dx as f32, dy as f32);
-                    }
+                    }*/
                 }
                 CameraMode::ORBIT => {
-                    match self.mouse_btn {
+                   /* match self.mouse_btn {
                         MouseButton::Left => {}
                         MouseButton::Right => {
                             if abs(dx) < 100.0 && abs(dy) < 100.0 {
@@ -289,7 +289,7 @@ impl CameraBase {
                         MouseButton::Back => {}
                         MouseButton::Forward => {}
                         MouseButton::Other(_) => {}
-                    }
+                    }*/
                 }
                 CameraMode::TOUCH => {}
             };
@@ -304,7 +304,26 @@ impl CameraBase {
             CameraMode::FLY => {
                 self.camera_fly.update_mouse(-dx as f32, dy as f32);
             }
-            CameraMode::ORBIT => {}
+            CameraMode::ORBIT => {
+                match self.mouse_btn {
+                    MouseButton::Left => {}
+                    MouseButton::Right => {
+                        if abs(dx) < 100.0 && abs(dy) < 100.0 {
+                            self.camera_orbit.update_mouse(-dx as f32, -dy as f32);
+                            //set_is_dirty = true;
+                        }
+                    }
+                    MouseButton::Middle => {
+                        if abs(dx) < 100.0 && abs(dy) < 100.0 {
+                            self.camera_orbit.pan(-dx as f32, dy as f32);
+                            //set_is_dirty = true;
+                        }
+                    }
+                    MouseButton::Back => {}
+                    MouseButton::Forward => {}
+                    MouseButton::Other(_) => {}
+                }
+            }
             CameraMode::TOUCH => {}
         };
     }

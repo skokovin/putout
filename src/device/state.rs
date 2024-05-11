@@ -7,7 +7,7 @@ use parking_lot::RwLock;
 use wgpu::{Adapter, Device, Features, Instance, Limits, Queue, RequestAdapterOptions};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
-use winit::event::{DeviceEvent, DeviceId, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, TouchPhase, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 use crate::device::device_state::DeviceState;
@@ -146,7 +146,7 @@ impl ApplicationHandler for MState {
             WindowEvent::HoveredFileCancelled => {}
             WindowEvent::Focused(_) => {}
             WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-                match COMMANDS.lock() {
+                match COMMANDS.try_lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnKeyBoard((device_id, event, is_synthetic)));
                     }
@@ -156,12 +156,11 @@ impl ApplicationHandler for MState {
             WindowEvent::ModifiersChanged(_) => {}
             WindowEvent::Ime(_) => {}
             WindowEvent::CursorMoved { device_id, position } => {
-                let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
-
+               let state = self.message_controller.as_ref().unwrap().read().scene_state.camera.mode;
                 match state {
                     CameraMode::FLY => {}
                     CameraMode::ORBIT => {
-                        match COMMANDS.lock() {
+                        match COMMANDS.try_lock() {
                             Ok(mut m) => {
                                 m.values.push_back(RemoteCommand::OnMouseMove((device_id, position)));
                             }
@@ -177,16 +176,16 @@ impl ApplicationHandler for MState {
             }
             WindowEvent::MouseWheel { device_id, delta, phase } => {
                 //self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), phase.clone());
-                match COMMANDS.lock() {
+                match COMMANDS.try_lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnMouseWheel((device_id, delta, phase)));
-                        window.read().request_redraw();
+                        //window.read().request_redraw();
                     }
                     Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
                 }
             }
             WindowEvent::MouseInput { device_id, state, button } => {
-                match COMMANDS.lock() {
+                match COMMANDS.try_lock() {
                     Ok(mut m) => {
                         m.values.push_back(RemoteCommand::OnMouseButton((device_id, state, button)));
                     }
@@ -212,11 +211,12 @@ impl ApplicationHandler for MState {
                     self.message_controller.as_ref().unwrap().write().is_capture_screen_requested = false;
                 }
                 self.device_state.as_ref().unwrap().clone().as_ref().write().render(self.window_state.as_ref().unwrap().clone());
-                window.read().request_redraw();
+                //window.read().request_redraw();
             }
         }
     }
     fn device_event(&mut self, event_loop: &ActiveEventLoop, device_id: DeviceId, event: DeviceEvent) {
+        let window = self.window.as_ref().unwrap();
         match event {
             DeviceEvent::Added => {}
             DeviceEvent::Removed => {}
@@ -225,18 +225,34 @@ impl ApplicationHandler for MState {
                 match state {
                     CameraMode::FLY => {
                         self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
+                        window.read().request_redraw();
                     }
-                    CameraMode::ORBIT => {}
+                    CameraMode::ORBIT => {
+                        self.message_controller.as_ref().unwrap().write().scene_state.camera.on_mouse_dx_dy(device_id.clone(), delta.0, delta.1);
+                        window.read().request_redraw();
+                        //self.message_controller.as_ref().unwrap().write().on_mouse_move_delta(device_id.clone(), delta.0, delta.1);
+               /*         match COMMANDS.lock() {
+                            Ok(mut m) => {
+                                m.values.push_back(RemoteCommand::OnMouseMoveDelta((device_id, delta.0, delta.1)));
+                            }
+                            Err(_e) => { warn!("CANT LOCK COMMANDS MEM") }
+                        }*/
+                    }
                     CameraMode::TOUCH => {}
                 }
+
             }
-            DeviceEvent::MouseWheel { .. } => {}
+            DeviceEvent::MouseWheel { delta } => {
+                //self.message_controller.as_ref().unwrap().write().on_zoom(device_id.clone(), delta.clone(), TouchPhase::Ended);
+            }
             DeviceEvent::Motion { .. } => {}
             DeviceEvent::Button { .. } => {}
             DeviceEvent::Key(_) => {}
         }
     }
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        self.window_state.as_ref().unwrap().write().request_redraw(self.device_state.as_ref().unwrap().as_ref())
+        let window = self.window.as_ref().unwrap();
+        window.read().request_redraw();
+        //self.window_state.as_ref().unwrap().write().request_redraw(self.device_state.as_ref().unwrap().as_ref())
     }
 }

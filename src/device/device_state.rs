@@ -233,7 +233,7 @@ impl DeviceState {
                             timestamp_writes: None,
                             occlusion_query_set: None,
                         });
-                        text_layput.text_renderer.render(&text_layput.atlas, &mut pass).unwrap();
+                        text_layput.text_renderer.render(&text_layput.atlas,&text_layput.viewport, &mut pass).unwrap();
                     }
                 }
                 queue.submit(iter::once(encoder.finish()));
