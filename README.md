@@ -36,6 +36,10 @@ Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts). </br>
 - Primitive Snap
 
 
+## Acknowledgements
+
+ - [A lot of perfect ships there ](https://www.nautic.is/)
+
 ## Build
 
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
