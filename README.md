@@ -19,8 +19,9 @@ Angular - to stay on static typing (other project)
 
 ## Demos
 
-Video instruction [Karma](https://www.youtube.com/watch?v=E0fKqEAThts).
-
+Video instruction [YouTube](https://www.youtube.com/watch?v=E0fKqEAThts).
+[200mb ship](https://viewer004-8db15.web.app/).
+[500mb ship](https://viewer701-f462d.web.app/).
 
 ## Build
 
