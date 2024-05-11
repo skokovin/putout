@@ -48,7 +48,7 @@ Some logics of hide/select moved to shaders. </br>
 
 ## Run Locally
 
-It can start on PC without UI. Press F2 to srtart loading process.
+It can start on PC without UI. Press F2 to start loading process.
 
 ## Disclaimer
 
@@ -69,8 +69,6 @@ Contributions to Test Suites are made under the
 Contributions to Software are made under the
 [GPU for the Web 3-Clause BSD License](https://github.com/gpuweb/admin/blob/master/SourceCodeLicense/LICENSE.txt)
 
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
 
 ## Contacts
 
