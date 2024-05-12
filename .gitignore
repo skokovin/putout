@@ -1,10 +1,12 @@
 /target
 /.idea/*
+/src/dmp/hull/nf/2data_bbx
+/src/dmp/hull/nf/2data_hash
+/src/dmp/hull/nf/2data_ind
+/src/dmp/hull/nf/2data_mesh
+
 /src/dmp/hull/nf/3data_bbx
-
 /src/dmp/hull/nf/3data_hash
-
 /src/dmp/hull/nf/3data_ind
-
 /src/dmp/hull/nf/3data_mesh
 /src/dmp/hull/701/*
