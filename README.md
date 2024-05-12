@@ -9,13 +9,17 @@ Shipyard is a kind of chaos. Web viewer is attempt to direct all from one point.
 
 When building a ship or something large, there’s typically a 3D model with attributes. Usually, these models can take up a lot of gigabytes. Is there a way to transfer the model over the network and display it in a browser? As far as I know, Chrome can address up to 16GB per tab, also need a way to package a mesh data. This model of a 120 meter vessel takes up about 6GB of memory, packed into 500 MB.
 
+## GUI
+- Web GUI [ShipUI project](https://github.com/skokovin/shipui)
+- Android GUI [GameActivity](https://developer.android.com/games/agdk/game-activity) is not shared yet.
+
 ## Basic Tools
 
 Rust - philosophy to do it right. </br>
 WGPU - The brilliant cross-platform, safe, pure-Rust graphics API.</br>
 WINIT - for window handling.</br>
 wasm-pack - to move all to WebAssembly.</br>
-Angular - to stay on static typing (other project)
+Angular - to stay on static typing ([ShipUI project] (https://github.com/skokovin/shipui))
 
 ## Demos
 
