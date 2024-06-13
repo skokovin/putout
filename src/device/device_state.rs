@@ -179,9 +179,6 @@ impl DeviceState {
                     });
                 }
 
-
-
-
                 if (!mc.is_mouse_btn_active && mc.active_point.x<f32::max_value() && mc.scene_state.camera.mode==CameraMode::ORBIT) {
 
                     //snap rendering
@@ -239,6 +236,7 @@ impl DeviceState {
                 queue.submit(iter::once(encoder.finish()));
                 smaa_frame.resolve();
                 out.present();
+
             }
             Err(e) => { println!("{}", e) }
         }
