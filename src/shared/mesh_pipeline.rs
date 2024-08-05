@@ -225,6 +225,7 @@ impl MeshPipeLine {
             }),
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
         //SNAP PIPELINE
@@ -430,6 +431,7 @@ impl MeshPipeLine {
             }),
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
         //SELECTION PIPELINE
@@ -630,6 +632,7 @@ impl MeshPipeLine {
             }),
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         });
 
 

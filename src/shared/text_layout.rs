@@ -88,19 +88,19 @@ impl TextLayout {
         let mut font_system: FontSystem = FontSystem::new_with_fonts(FontSource::generate_fonts());
 
         let mut snap_symbol_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(15.0, 16.0));
-        snap_symbol_buff.set_size(&mut font_system, 20.0, 200.0);
+        snap_symbol_buff.set_size(&mut font_system, Some(20.0), Some(200.0));
         snap_symbol_buff.set_text(&mut font_system, "", Attrs::new().family(Family::SansSerif), Shaping::Advanced);
         snap_symbol_buff.shape_until_scroll(&mut font_system, false);
 
 
         let mut snap_value_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(15.0, 15.0));
-        snap_value_buff.set_size(&mut font_system, 200.0, 200.0);
+        snap_value_buff.set_size(&mut font_system, Some(200.0), Some(200.0));
         snap_value_buff.set_text(&mut font_system, "BBBBBB", Attrs::new().family(Family::Name("Arial")), Shaping::Basic);
         snap_value_buff.shape_until_scroll(&mut font_system, false);
 
 
         let mut dim_buff: Buffer = glyphon::Buffer::new(&mut font_system, Metrics::new(45.0, 45.0));
-        dim_buff.set_size(&mut font_system, 200.0, 200.0);
+        dim_buff.set_size(&mut font_system, Some(200.0), Some(200.0));
         dim_buff.set_text(&mut font_system, "", Attrs::new().family(Family::Name("Arial")), Shaping::Basic);
         dim_buff.shape_until_scroll(&mut font_system, false);
 

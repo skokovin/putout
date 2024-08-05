@@ -58,6 +58,7 @@ impl MState {
                             label: None,
                             required_features: Features::MULTI_DRAW_INDIRECT,
                             required_limits: limits,
+                            memory_hints: Default::default(),
                         },
                         None,
                     )).unwrap();
@@ -68,6 +69,7 @@ impl MState {
                             label: None,
                             required_features: Features::default(),
                             required_limits: limits,
+                            memory_hints: Default::default(),
                         },
                         None,
                     )).unwrap();
