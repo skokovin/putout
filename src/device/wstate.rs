@@ -39,26 +39,26 @@ impl WState {
             let mut limits: Limits = Limits::default();
             limits.max_buffer_size = (134217728) * 16;//128*20=2560 MB //WASM ONLY 2 Gb
             limits.max_storage_buffer_binding_size = (134217728) * 16 - 4; //(134217728) * 16;
-            let _instance: Instance = Instance::new(wgpu::InstanceDescriptor {
+            limits.max_inter_stage_shader_components=60;
+            let id=wgpu::InstanceDescriptor {
                 backends: Backends::PRIMARY,
                 flags: Default::default(),
-                dx12_shader_compiler: Default::default(),
-                gles_minor_version: Default::default(),
-            });
+                backend_options: Default::default(),
+            };
+            let _instance: Instance = Instance::new(&id);
 
             let adapter_options = RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
                 compatible_surface: None,
             };
-            let _adapter: Adapter = _instance.request_adapter(&adapter_options).await.unwrap_or_else(|| { panic!("Cant init adapter") });
+            let _adapter: Adapter = _instance.request_adapter(&adapter_options).await.unwrap();
             let mut dd = DeviceDescriptor::default();
             dd.required_limits = limits;
 
             let (_device, _queue): (Device, Queue) = {
                 let (device, queue) = _adapter.request_device(
                     &dd,
-                    None,
                 ).await.unwrap_or_else(|e| panic!("Cant init queue {:?}", e));
                 (device, queue)
             };

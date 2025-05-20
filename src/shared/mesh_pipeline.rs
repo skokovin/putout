@@ -186,13 +186,13 @@ impl MeshPipeLine {
             layout: Some(&mesh_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &mesh_shader,
-                entry_point: "vs_main",
+                entry_point:Some("vs_main") ,
                 compilation_options: Default::default(),
                 buffers: &[MeshVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &mesh_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: format,
@@ -392,13 +392,13 @@ impl MeshPipeLine {
             layout: Some(&snap_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &snap_shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
                 buffers: &[SnapVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &snap_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: format,
@@ -598,13 +598,13 @@ impl MeshPipeLine {
             layout: Some(&selection_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &selection_shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 compilation_options: Default::default(),
                 buffers: &[MeshVertex::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &selection_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
                 targets: &[
                     Some(wgpu::ColorTargetState {

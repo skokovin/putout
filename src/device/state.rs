@@ -37,13 +37,13 @@ impl MState {
         let (instance, adapter, device, queue): (Rc<RwLock<Instance>>, Rc<RwLock<Adapter>>, Rc<RwLock<Device>>, Rc<RwLock<Queue>>) = {
             let mut limits: Limits = Limits::default();
             limits.max_buffer_size = (134217728) * 20;//128*20=2560 MB
-            limits.max_storage_buffer_binding_size = (134217728) * 16;
-            let _instance: Instance = Instance::new(wgpu::InstanceDescriptor {
+            limits.max_storage_buffer_binding_size = (134217728) * 16-1;
+            let id=wgpu::InstanceDescriptor {
                 backends: wgpu::Backends::PRIMARY,
                 flags: Default::default(),
-                dx12_shader_compiler: Default::default(),
-                gles_minor_version: Default::default(),
-            });
+                backend_options: Default::default(),
+            };
+            let _instance: Instance = Instance::new(&id);
             let adapter_options = RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
@@ -59,8 +59,8 @@ impl MState {
                             required_features: Features::MULTI_DRAW_INDIRECT,
                             required_limits: limits,
                             memory_hints: Default::default(),
+                            trace: Default::default(),
                         },
-                        None,
                     )).unwrap();
                     (device, queue)
                 } else {
@@ -70,8 +70,8 @@ impl MState {
                             required_features: Features::default(),
                             required_limits: limits,
                             memory_hints: Default::default(),
+                            trace: Default::default(),
                         },
-                        None,
                     )).unwrap();
                     (device, queue)
                 }
